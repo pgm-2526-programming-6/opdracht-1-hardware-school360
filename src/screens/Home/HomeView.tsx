@@ -2,7 +2,12 @@ import { Image, Text, View } from "react-native";
 
 const HomeView = () => {
   return (
-    <View>
+    <View
+      style={{
+        flex: 1,
+        padding: 16,
+      }}
+    >
       {/* title header */}
       <View>
         <Text>Welcome, nameUser</Text>
@@ -22,19 +27,19 @@ const HomeView = () => {
       <View>
         <Text>This week</Text>
         <Text>0</Text>
-        <Image source={require("src/assets/icons/calendar-icon.png")} />
+        <Image source={require("../../assets/icons/callendar-icon.png")} />
       </View>
 
       <View>
         <Text>This Month</Text>
         <Text>0</Text>
-        <Image source={require("src/assets/icons/graph.png")} />
+        <Image source={require("../../assets/icons/graph.png")} />
       </View>
 
       <View>
         <Text>Total Attendances</Text>
         <Text>0</Text>
-        <Image source={require("src/assets/icons/total.png")} />
+        <Image source={require("../../assets/icons/total.png")} />
       </View>
     </View>
   );
