@@ -1,12 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import { Tabs } from "expo-router";
+import { COLORS } from "../../style/colors";
 
 export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: "rgba(0,0,0,0.6)",
       }}
     >
       <Tabs.Screen

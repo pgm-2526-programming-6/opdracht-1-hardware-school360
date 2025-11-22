@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileCard from "../../components/design/ProfileCard";
 import SettingsCard from "../../components/design/SettingsCard";
+import { COLORS } from "../../style/colors";
 
 export default function Account() {
   return (
@@ -30,10 +31,7 @@ export default function Account() {
           icon="vibrate"
           variant="toggle"
         />
-        <SettingsCard
-          name="Privacy & Security"
-          variant="link"
-        />
+        <SettingsCard name="Privacy & Security" variant="link" />
         <SettingsCard name="Help & Support" variant="link" />
       </ScrollView>
     </SafeAreaView>
@@ -43,7 +41,7 @@ export default function Account() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f6f5f8",
+    backgroundColor: COLORS.background,
   },
   container: {
     padding: 20,
@@ -53,7 +51,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "800",
     marginBottom: 12,
-    color: "#0b0b0b",
+    color: COLORS.textPrimary,
   },
   sectionHeader: {
     fontSize: 18,
