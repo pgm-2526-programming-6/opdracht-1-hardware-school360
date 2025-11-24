@@ -8,9 +8,7 @@ export default function RootLayout() {
       }}
     >
       <Stack.Screen
-        name="index"
-        redirect
-        options={{ href: "/(app)/index" }}
+        name="/(app)"
       />
     </Stack>
   );

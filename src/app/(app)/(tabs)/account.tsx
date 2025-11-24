@@ -1,9 +1,9 @@
 import React from "react";
 import { ScrollView, StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import ProfileCard from "../../components/design/ProfileCard";
-import SettingsCard from "../../components/design/SettingsCard";
-import { COLORS } from "../../style/colors";
+import ProfileCard from "../../../components/design/ProfileCard";
+import SettingsCard from "../../../components/design/SettingsCard";
+import { COLORS } from "../../../style/colors";
 
 export default function Account() {
   return (
