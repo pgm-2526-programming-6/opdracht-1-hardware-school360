@@ -29,7 +29,7 @@ const HomeView = () => {
           <Text style={styles.cardNumber}>0</Text>
         </View>
         <View style={styles.cardContainer}>
-          <Image source={require("../../assets/icons/callender-icon.png")} style={styles.cardIcon} />
+          <Image source={require("../../../assets/icons/callender-icon.png")} style={styles.cardIcon} />
         </View>
       </View>
 
@@ -39,7 +39,7 @@ const HomeView = () => {
           <Text style={styles.cardNumber}>0</Text>
         </View>
         <View style={styles.cardContainer}>
-          <Image source={require("../../assets/icons/graph.png")} style={styles.cardIcon} />
+          <Image source={require("../../../assets/icons/graph.png")} style={styles.cardIcon} />
         </View>
       </View>
 
@@ -49,7 +49,7 @@ const HomeView = () => {
           <Text style={styles.cardNumber}>0</Text>
         </View>
         <View style={styles.cardContainer}>
-          <Image source={require("../../assets/icons/total.png")} style={styles.cardIcon} />
+          <Image source={require("../../../assets/icons/total.png")} style={styles.cardIcon} />
         </View>
       </View>
     </SafeAreaView>
