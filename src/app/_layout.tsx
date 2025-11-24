@@ -1,16 +1,23 @@
 import { Stack } from "expo-router";
-
+import { useState } from "react";
 export default function RootLayout() {
+  const [isAuth, setIsAuth] = useState(false);
+
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen
-        name="/(app)"
-      />
-    </Stack>
+    <>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Stack.Protected guard={isAuth}>
+          <Stack.Screen name="(app)" />
+        </Stack.Protected>
+
+        <Stack.Protected guard={!isAuth}>
+        <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+      </Stack>
+    </>
   );
 }
-
