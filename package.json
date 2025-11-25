@@ -8,7 +8,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "supabase-w": "powershell -ExecutionPolicy Bypass -File ./scripts/fetch-supabase.ps1",
+    "supabase-l": "sh ./scripts/fetch-supabase.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -46,6 +48,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "supabase": "^2.58.5",
     "typescript": "~5.9.2"
   },
   "private": true
