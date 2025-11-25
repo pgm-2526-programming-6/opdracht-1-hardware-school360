@@ -1,6 +1,7 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { COLORS } from "../../style/colors";
 
 type Props = {
   name?: string;
@@ -15,7 +16,7 @@ export default function ProfileCard({
 }: Props) {
   return (
     <View style={styles.wrapper}>
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: COLORS.cardBackground }]}> 
         <View style={styles.topRow}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatarCircle}>
@@ -48,12 +49,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 14,
     padding: 16,
-    // shadow (iOS)
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
-    // elevation (Android)
     elevation: 6,
   },
   topRow: {
@@ -67,7 +66,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#f57c00",
+    backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -82,11 +81,11 @@ const styles = StyleSheet.create({
   studentId: {
     marginTop: 6,
     fontSize: 12,
-    color: "#7a7a7a",
+    color: COLORS.textSecondary,
   },
   divider: {
     height: 1,
-    backgroundColor: "#e6e6e6",
+    backgroundColor: COLORS.divider,
     marginVertical: 12,
   },
   emailRow: {
@@ -95,7 +94,7 @@ const styles = StyleSheet.create({
   },
   emailText: {
     marginLeft: 8,
-    color: "#444",
+    color: COLORS.textPrimary,
     fontSize: 13,
   },
 });

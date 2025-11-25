@@ -1,42 +1,13 @@
-import { Ionicons } from "@expo/vector-icons";
-import Entypo from "@expo/vector-icons/Entypo";
-import { Tabs } from "expo-router";
+import { Stack } from "expo-router";
 
-export default function AppLayout() {
+const AppLayout = () => {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="account"
-        options={{
-          title: "Account",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="Campuses"
-        options={{
-          title: "Campuses",
-          tabBarIcon: ({ color, size }) => (
-            <Entypo name="location" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+    <>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </>
   );
-}
+};
+
+export default AppLayout;

@@ -4,7 +4,12 @@
     "strict": true,
     "jsx": "react-native",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@assets/*": ["./src/assets/*"],
+      "@design/*": ["./src/components/design/*"],
+      "@functional/*": ["./src/components/functional/*"],
+      "@core/*": ["./src/core/*"],
+      "@style/*": ["./src/style/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]

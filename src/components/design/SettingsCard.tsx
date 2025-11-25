@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { COLORS } from "../../style/colors";
 
 type Props = {
   name: string;
@@ -33,13 +34,27 @@ export default function SettingsCard({
   if (variant === "link") {
     return (
       <TouchableOpacity
-        style={styles.linkRow}
+        style={[
+          styles.linkRow,
+          {
+            backgroundColor: COLORS.cardBackground,
+            borderColor: COLORS.divider,
+          },
+        ]}
         onPress={onPress}
         activeOpacity={0.75}
       >
         <View style={styles.leftIconBox}>
-          <View style={styles.iconInner}>
-            <Ionicons name={icon} size={20} color="#f57c00" />
+          <View
+            style={[
+              styles.iconInner,
+              {
+                backgroundColor: COLORS.primaryLight,
+                borderColor: COLORS.primaryBorder,
+              },
+            ]}
+          >
+            <Ionicons name={icon} size={20} color={COLORS.primary} />
           </View>
         </View>
 
@@ -48,7 +63,11 @@ export default function SettingsCard({
         </View>
 
         <View style={styles.rightIcon}>
-          <Ionicons name="chevron-forward" size={20} color="#333" />
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={COLORS.textPrimary}
+          />
         </View>
       </TouchableOpacity>
     );
@@ -57,8 +76,16 @@ export default function SettingsCard({
   return (
     <View style={styles.row}>
       <View style={styles.leftIconBox}>
-        <View style={styles.iconInner}>
-          <Ionicons name={icon} size={20} color="#f57c00" />
+        <View
+          style={[
+            styles.iconInner,
+            {
+              backgroundColor: COLORS.primaryLight,
+              borderColor: COLORS.primaryBorder,
+            },
+          ]}
+        >
+          <Ionicons name={icon} size={20} color={COLORS.primary} />
         </View>
       </View>
 
@@ -71,8 +98,8 @@ export default function SettingsCard({
 
       <View style={styles.switchBox}>
         <Switch
-          trackColor={{ false: "#dcdcdc", true: "#ffd6b3" }}
-          thumbColor={enabled ? "#f57c00" : "#fff"}
+          trackColor={{ false: COLORS.muted, true: "#ffd6b3" }}
+          thumbColor={enabled ? COLORS.primary : COLORS.cardBackground}
           ios_backgroundColor="#dcdcdc"
           onValueChange={handleToggle}
           value={enabled}
