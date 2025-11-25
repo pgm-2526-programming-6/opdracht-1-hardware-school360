@@ -1,8 +1,7 @@
 import AuthProvider from "@functional/auth/AuthProvider";
 import useAuth from "@functional/auth/useAuth";
 import { ThemeProvider } from "@react-navigation/native";
-import { DefaultScreenOptions, Fonts, Theme } from "@style/theme";
-import { useFonts } from "expo-font";
+import { DefaultScreenOptions, Theme } from "@style/theme";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -11,22 +10,27 @@ import { useEffect } from "react";
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
-    [Fonts.regular]: require("@assets/fonts/FiraSans-Regular.ttf"),
-    [Fonts.semiBold]: require("@assets/fonts/FiraSans-SemiBold.ttf"),
-    [Fonts.bold]: require("@assets/fonts/FiraSans-Bold.ttf"),
-  });
+  // Temporarily commented out until fonts are added
+  // const [loaded] = useFonts({
+  //   [Fonts.regular]: require("@assets/fonts/FiraSans-Regular.ttf"),
+  //   [Fonts.semiBold]: require("@assets/fonts/FiraSans-SemiBold.ttf"),
+  //   [Fonts.bold]: require("@assets/fonts/FiraSans-Bold.ttf"),
+  // });
 
-  // Expo boilerplate code
+  // // Expo boilerplate code
+  // useEffect(() => {
+  //   if (loaded) {
+  //     SplashScreen.hideAsync();
+  //   }
+  // }, [loaded]);
+
+  // if (!loaded) {
+  //   return null;
+  // }
+
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
+    SplashScreen.hideAsync();
+  }, []);
 
   return (
     <AuthProvider>
