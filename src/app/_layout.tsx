@@ -4,7 +4,7 @@ import { ThemeProvider } from "@react-navigation/native";
 import { DefaultScreenOptions, Theme } from "@style/theme";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -38,10 +38,8 @@ export default function RootLayout() {
     </AuthProvider>
   );
 }
-
 const AuthGate = () => {
   const { isLoggedIn } = useAuth();
-
   return (
     <ThemeProvider value={Theme}>
       <Stack screenOptions={{ ...DefaultScreenOptions, headerShown: false }}>
@@ -56,3 +54,5 @@ const AuthGate = () => {
     </ThemeProvider>
   );
 };
+
+

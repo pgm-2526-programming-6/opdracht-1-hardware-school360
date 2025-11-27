@@ -1,50 +1,130 @@
+import React, { useEffect, useRef, useState } from "react";
 import { Entypo } from "@expo/vector-icons";
-import React from "react";
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Location from "expo-location";
 import { COLORS } from "../../../style/colors";
+
+// Dynamically require react-native-maps to avoid bundler/runtime errors in plain Expo Go
+let MapsModule: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  MapsModule = require("react-native-maps");
+} catch (err) {
+  MapsModule = null;
+}
+
+const MapView = MapsModule ? (MapsModule.default ?? MapsModule.MapView) : null;
+const Marker = MapsModule ? (MapsModule.Marker ?? MapsModule.default?.Marker) : null;
+const PROVIDER_GOOGLE = MapsModule ? MapsModule.PROVIDER_GOOGLE : undefined;
 
 const { width } = Dimensions.get("window");
 
 export default function Campuses() {
+  const [region, setRegion] = useState<{
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const mapRef = useRef<any>(null);
+  const watchRef = useRef<any>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const setup = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setLoading(false);
+          return;
+        }
+
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+        if (!mounted) return;
+        const newRegion = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        setRegion(newRegion);
+        setLoading(false);
+
+        const sub = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.Highest, timeInterval: 5000, distanceInterval: 1 },
+          (p: any) => {
+            if (!mounted) return;
+            setRegion((r) => (r ? { ...r, latitude: p.coords.latitude, longitude: p.coords.longitude } : { latitude: p.coords.latitude, longitude: p.coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }));
+          }
+        );
+        watchRef.current = sub;
+      } catch (e) {
+        console.warn("expo-location error", e);
+        setLoading(false);
+      }
+    };
+
+    setup();
+
+    return () => {
+      mounted = false;
+      if (watchRef.current && typeof watchRef.current.remove === "function") watchRef.current.remove();
+      if (watchRef.current && typeof watchRef.current.remove === "undefined" && typeof watchRef.current === "object" && typeof watchRef.current.remove === "function") watchRef.current.remove();
+    };
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Map / header area - placeholder for Google Maps */}
       <View style={styles.mapWrap}>
-        <View style={styles.mapPlaceholder}>
-          {/* Decorative pins to match design; replace this View with a MapView later */}
-          <View style={[styles.pin, { left: 40, top: 24 }]}>
-            <Entypo name="location-pin" size={28} color="#fff" />
+        {MapView && region ? (
+          // @ts-ignore
+          <MapView
+            ref={mapRef}
+            provider={PROVIDER_GOOGLE}
+            style={styles.mapWrap}
+            showsUserLocation={true}
+            region={region || undefined}
+            initialRegion={
+              region || {
+                latitude: 50.8503,
+                longitude: 4.3517,
+                latitudeDelta: 10,
+                longitudeDelta: 10,
+              }
+            }
+          >
+            {Marker && <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} />}
+          </MapView>
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            {loading ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <>
+                <Text style={{ textAlign: "center", padding: 18 }}>Waiting for location… Zorg dat je toestemming geeft en dat locatie aanstaat.</Text>
+                <View style={[styles.pin, { left: 40, top: 24 }]}>
+                  <Entypo name="location-pin" size={28} color="#fff" />
+                </View>
+                <View style={[styles.pin, { left: width / 2 - 24, top: 8 }]}>
+                  <Entypo name="location-pin" size={28} color="#fff" />
+                </View>
+                <View style={[styles.pin, { right: 48, top: 64 }]}>
+                  <Entypo name="location-pin" size={28} color="#fff" />
+                </View>
+              </>
+            )}
           </View>
-          <View style={[styles.pin, { left: width / 2 - 24, top: 8 }]}>
-            <Entypo name="location-pin" size={28} color="#fff" />
-          </View>
-          <View style={[styles.pin, { right: 48, top: 64 }]}>
-            <Entypo name="location-pin" size={28} color="#fff" />
-          </View>
-          <View style={[styles.pin, { left: 56, top: 108 }]}>
-            <Entypo name="location-pin" size={28} color="#fff" />
-          </View>
-        </View>
+        )}
       </View>
 
-      {/* Content panel */}
       <View style={styles.panel}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <Text style={styles.title}>School Campuses</Text>
           <Text style={styles.subtitle}>Select a campus to view details</Text>
 
-          {/* Example campus cards */}
           <TouchableOpacity style={styles.card} activeOpacity={0.8}>
             <View style={styles.cardLeft}>
               <View style={styles.iconBox}>
@@ -82,13 +162,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   mapWrap: {
-    height: 220,
+    height: 500,
     backgroundColor: COLORS.primaryLight,
   },
   mapPlaceholder: {
     flex: 1,
     backgroundColor: COLORS.primaryLight,
     position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
   },
   pin: {
     position: "absolute",
@@ -108,7 +190,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.cardBackground,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    marginTop: -24,
+    marginTop: 0,
     paddingTop: 18,
   },
   content: {
@@ -171,3 +253,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
+
