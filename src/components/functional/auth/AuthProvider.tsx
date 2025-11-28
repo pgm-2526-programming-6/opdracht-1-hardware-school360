@@ -1,4 +1,4 @@
-import { getCurrentAuth, login } from "@core/modules/auth/api.auth";
+import { getCurrentAuth, login, logout } from "@core/modules/auth/api.auth";
 import { Auth, LoginBody } from "@core/modules/auth/types.auth";
 import { API } from "@core/network/supabase/api";
 import { AuthChangeEvent } from "@supabase/supabase-js";
@@ -47,6 +47,11 @@ const AuthProvider = ({ children }: Props) => {
     return auth;
   };
 
+  const handleLogout = async () => {
+    await logout();
+    setAuth(null);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -54,6 +59,7 @@ const AuthProvider = ({ children }: Props) => {
         isLoggedIn: !!auth,
         auth,
         login: handleLogin,
+        logout: handleLogout,
       }}
     >
       {isInitialized ? children : null}

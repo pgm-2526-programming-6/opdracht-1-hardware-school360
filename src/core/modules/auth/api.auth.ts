@@ -2,13 +2,14 @@ import { API } from "@core/network/supabase/api";
 import { Auth, CreateUserBody, LoginBody } from "./types.auth";
 
 export const registerUser = (user: CreateUserBody) => {
-  const { email, password, ...rest } = user;
+  const { email, password, first_name, last_name } = user;
   return API.auth.signUp({
     email,
     password,
     options: {
       data: {
-        ...rest,
+        first_name,
+        last_name,
       },
     },
   });
@@ -22,16 +23,16 @@ export const getCurrentAuth = async (): Promise<Auth | null> => {
   if (!session || !session.user) {
     return null;
   }
-  const { user } = session;
-  const { data: profile } = await API.from("profiles").select("*").eq("id", user.id).single();
 
-  if (!profile) {
-    throw new Error("Profile not found for current user");
-  }
+  const { user } = session;
+  const first_name = user.user_metadata?.first_name || "";
+  const last_name = user.user_metadata?.last_name || "";
+
   return {
     user: {
       email: user.email ?? "",
-      ...profile,
+      first_name,
+      last_name,
     },
     session,
   };

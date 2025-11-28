@@ -1,152 +1,222 @@
-import { Link } from "expo-router";
-import { useState } from "react";
+import { LoginBody } from "@/src/core/modules/auth/types.auth";
+import useAuth from "@functional/auth/useAuth";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useMutation } from "@tanstack/react-query";
+import { Link, useRouter } from "expo-router";
+import { Controller, useForm } from "react-hook-form";
 import {
-  Alert,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as yup from "yup";
 
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const schema = yup.object().shape({
+  email: yup.string().email().required(),
+  password: yup.string().required(),
+});
 
-  const handleSubmit = () => {
-    // You can add validation here
-    Alert.alert("Login Info", `Email: ${email}\nPassword: ${password}`);
+const Login = () => {
+  const router = useRouter();
+  const { login } = useAuth();
+
+  const { mutate, error, isPending } = useMutation({
+    mutationFn: login,
+    onSuccess: () => {
+      router.replace("/(app)/(tabs)/home");
+    },
+  });
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    resolver: yupResolver(schema),
+  });
+
+  const handleLogin = (data: LoginBody) => {
+    mutate(data);
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.logoCircle}>
-          <Text style={styles.logoIcon}>📍</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        keyboardShouldPersistTaps="always"
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.container}>
+          <Text style={styles.title}>Login to your account</Text>
+
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{(error as Error).message}</Text>
+            </View>
+          )}
+
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, value, onBlur } }) => (
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="john@doe.com"
+                  autoComplete="email"
+                  keyboardType="email-address"
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                  editable={!isPending}
+                />
+                {errors.email && (
+                  <Text style={styles.fieldError}>{errors.email.message}</Text>
+                )}
+              </View>
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange, value, onBlur } }) => (
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>Password</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••••"
+                  secureTextEntry
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                  editable={!isPending}
+                />
+                {errors.password && (
+                  <Text style={styles.fieldError}>
+                    {errors.password.message}
+                  </Text>
+                )}
+              </View>
+            )}
+          />
+
+          <TouchableOpacity
+            style={[styles.button, isPending && styles.buttonDisabled]}
+            onPress={handleSubmit(handleLogin)}
+            disabled={isPending}
+          >
+            <Text style={styles.buttonText}>
+              {isPending ? "Logging in..." : "Login"}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.registerContainer}>
+            <Text style={styles.registerText}>Dont have an account? </Text>
+            <Link href="/(auth)/register" asChild>
+              <TouchableOpacity>
+                <Text style={styles.registerLink}>Register here</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
         </View>
-        <Text style={styles.heading}>Artevelde Attendance</Text>
-        <Text style={styles.subheading}>Log in to your account</Text>
-        <Text style={styles.label}>E-mailadress</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Your.name@student.arteveldehs.be"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="………"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>Log in</Text>
-        </TouchableOpacity>
-        <Text style={styles.registerText}>
-          Don’t have an account yet?{" "}
-          <Link href="/(auth)/register" style={styles.registerLink}>
-            Register here
-          </Link>
-        </Text>
-      </View>
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 20,
+  },
   container: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-    backgroundColor: "#f5f6f8",
   },
-  card: {
-    width: "95%",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#f2994a",
-    padding: 32,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
   },
-  logoCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "#f2994a",
-    alignItems: "center",
-    justifyContent: "center",
+  fieldContainer: {
     marginBottom: 16,
   },
-  logoIcon: {
-    fontSize: 36,
-    color: "#fff",
-  },
-  heading: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#222",
-    textAlign: "center",
-    marginBottom: 4,
-  },
-  subheading: {
-    fontSize: 16,
-    color: "#444",
-    marginBottom: 18,
-    textAlign: "center",
-  },
   label: {
-    alignSelf: "flex-start",
-    fontWeight: "bold",
-    color: "#222",
-    marginTop: 8,
-    marginBottom: 4,
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 6,
+    color: "#333",
   },
   input: {
-    width: "100%",
-    height: 44,
-    borderColor: "#f2994a",
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    backgroundColor: "#fff",
-    marginBottom: 10,
+    borderColor: "#ddd",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     fontSize: 16,
   },
+  fieldError: {
+    color: "#c33",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  errorBox: {
+    backgroundColor: "#fee",
+    borderColor: "#f2994a",
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 20,
+  },
+  errorText: {
+    color: "#c33",
+    fontSize: 14,
+  },
   button: {
-    width: "100%",
     backgroundColor: "#f2994a",
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 6,
     alignItems: "center",
-    marginTop: 10,
-    marginBottom: 8,
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  registerContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   registerText: {
-    color: "#222",
     fontSize: 14,
-    marginTop: 4,
-    textAlign: "center",
+    color: "#666",
   },
   registerLink: {
+    fontSize: 14,
+    color: "#f2994a",
+    fontWeight: "600",
     textDecorationLine: "underline",
-    fontWeight: "bold",
-    color: "#222",
   },
 });
+
+export default Login;

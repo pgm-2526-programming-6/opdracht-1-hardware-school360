@@ -1,25 +1,64 @@
-import { Link } from "expo-router";
-import { useState } from "react";
+import { registerUser } from "@core/modules/auth/api.auth";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useMutation } from "@tanstack/react-query";
+import { Link, useRouter } from "expo-router";
+import { Controller, useForm } from "react-hook-form";
 import {
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import * as yup from "yup";
+
+const schema = yup.object().shape({
+  first_name: yup.string().required("First name is required"),
+  last_name: yup.string().required("Last name is required"),
+  email: yup.string().email("Invalid email").required("Email is required"),
+  password: yup
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .required("Password is required"),
+});
 
 export default function RegisterPage() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("student");
+  const router = useRouter();
+  const { mutate, isPending, error } = useMutation({
+    mutationFn: registerUser,
+    onSuccess: () => {
+      Alert.alert("Success", "Account created! Please log in.");
+      setTimeout(() => {
+        router.push("/(auth)/login");
+      }, 1000);
+    },
+    onError: (err) => {
+      Alert.alert("Error", (err as Error).message);
+    },
+  });
 
-  const handleRegister = () => {
-    Alert.alert(
-      "Register Info",
-      `Name: ${name}\nEmail: ${email}\nPassword: ${password}\nRole: ${role}`
-    );
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      first_name: "",
+      last_name: "",
+      email: "",
+      password: "",
+    },
+    resolver: yupResolver(schema),
+  });
+
+  const onSubmit = (data: any) => {
+    mutate({
+      email: data.email,
+      password: data.password,
+      first_name: data.first_name,
+      last_name: data.last_name,
+    });
   };
 
   return (
@@ -31,72 +70,119 @@ export default function RegisterPage() {
         <Text style={styles.heading}>Artevelde Attendance</Text>
         <Text style={styles.subheading}>Make a new account</Text>
 
-        <Text style={styles.label}>Full name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="First Name"
-          value={name}
-          onChangeText={setName}
-        />
+        {error && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{(error as Error).message}</Text>
+          </View>
+        )}
 
-        <Text style={styles.label}>E-mail</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Your.name@student.arteveldehs.be"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="………"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-
-        <Text style={styles.label}>I am a</Text>
-        <View style={styles.radioGroup}>
-          <TouchableOpacity
-            style={styles.radioOption}
-            onPress={() => setRole("student")}
-          >
-            <View
-              style={[
-                styles.radioCircle,
-                role === "student" && styles.radioSelected,
-              ]}
-            >
-              {role === "student" && <View style={styles.radioDot} />}
+        <Controller
+          control={control}
+          name="first_name"
+          render={({ field: { onChange, value, onBlur } }) => (
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>First name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="John"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                editable={!isPending}
+              />
+              {errors.first_name && (
+                <Text style={styles.fieldError}>
+                  {errors.first_name.message}
+                </Text>
+              )}
             </View>
-            <Text style={styles.radioLabel}>Student</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.radioOption}
-            onPress={() => setRole("lecturer")}
-          >
-            <View
-              style={[
-                styles.radioCircle,
-                role === "lecturer" && styles.radioSelected,
-              ]}
-            >
-              {role === "lecturer" && <View style={styles.radioDot} />}
-            </View>
-            <Text style={styles.radioLabel}>Lecturer</Text>
-          </TouchableOpacity>
-        </View>
+          )}
+        />
 
-        <TouchableOpacity style={styles.button} onPress={handleRegister}>
-          <Text style={styles.buttonText}>Register</Text>
+        <Controller
+          control={control}
+          name="last_name"
+          render={({ field: { onChange, value, onBlur } }) => (
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>Last name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Doe"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                editable={!isPending}
+              />
+              {errors.last_name && (
+                <Text style={styles.fieldError}>
+                  {errors.last_name.message}
+                </Text>
+              )}
+            </View>
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, value, onBlur } }) => (
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>E-mail</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Your.name@student.arteveldehs.be"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!isPending}
+              />
+              {errors.email && (
+                <Text style={styles.fieldError}>{errors.email.message}</Text>
+              )}
+            </View>
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, value, onBlur } }) => (
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>Password</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                secureTextEntry
+                editable={!isPending}
+              />
+              {errors.password && (
+                <Text style={styles.fieldError}>{errors.password.message}</Text>
+              )}
+            </View>
+          )}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, isPending && styles.buttonDisabled]}
+          onPress={handleSubmit(onSubmit)}
+          disabled={isPending}
+        >
+          <Text style={styles.buttonText}>
+            {isPending ? "Registering..." : "Register"}
+          </Text>
         </TouchableOpacity>
+
         <Text style={styles.registerText}>
           Already have an account?{" "}
-          <Link href="/(auth)/login" style={styles.registerLink}>
-            Log in here
+          <Link href="/(auth)/login" asChild>
+            <TouchableOpacity>
+              <Text style={styles.registerLink}>Log in here</Text>
+            </TouchableOpacity>
           </Link>
         </Text>
       </View>
@@ -216,6 +302,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 8,
   },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
   buttonText: {
     color: "#fff",
     fontSize: 18,
@@ -231,5 +320,27 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
     fontWeight: "bold",
     color: "#222",
+  },
+  fieldContainer: {
+    marginBottom: 12,
+    width: "100%",
+  },
+  fieldError: {
+    color: "#c33",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  errorBox: {
+    backgroundColor: "#fee",
+    borderColor: "#f2994a",
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 20,
+    width: "100%",
+  },
+  errorText: {
+    color: "#c33",
+    fontSize: 14,
   },
 });
