@@ -22,15 +22,6 @@ export default function AppLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="account"
-        options={{
-          title: "Account",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
-        }}
-      />
 
       <Tabs.Screen
         name="campuses"
@@ -38,6 +29,16 @@ export default function AppLayout() {
           title: "Campuses",
           tabBarIcon: ({ color, size }) => (
             <Entypo name="location" size={size} color={color} />
+          ),
+        }}
+      />
+      
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: "Account",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
           ),
         }}
       />
