@@ -8,3 +8,4 @@ export const getCampuses = async () => {
   }
   return response.data ?? [];
 };
+
