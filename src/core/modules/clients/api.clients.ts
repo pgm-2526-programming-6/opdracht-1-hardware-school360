@@ -10,10 +10,12 @@ export const getCampuses = async () => {
 };
 
 export const getAttendanceSessions = async () => {
-  const response = await API.from("AttendanceSessions").select("*");
-  if (response) {
+  const response = await API.from("AttendanceSessions").select(`*,
+      profile:profile_id ( first_name, last_name ),
+      campus:campus_id ( name )`);
+  if (response && response.data) {
     console.log("getAttendanceSessions response", response.data[0]);
-    console.log("Aantal AttendanceSessions:", response.data.length);
+    return response.data;
   }
-  return response.data ?? [];
+  return [];
 };
