@@ -15,7 +15,6 @@ import * as Location from "expo-location";
 import { COLORS } from "../../../style/colors";
 import { getCampuses } from "@/src/core/modules/clients/api.clients";
 import * as TaskManager from "expo-task-manager";
-import * as Notifications from 'expo-notifications';
 
 // Dynamically require react-native-maps to avoid bundler/runtime errors in plain Expo Go
 let MapsModule: any = null;
@@ -44,17 +43,6 @@ TaskManager.defineTask(
     if (eventType === Location.GeofencingEventType.Enter) {
       const campusName = region.identifier || "campus";
       console.log(`Je bent aangekomen bij: ${campusName}`);
-
-      Notifications.scheduleNotificationAsync({
-        content: {
-          title: "Campus Bereikt! 🎓",
-          body: `Welkom bij ${campusName}!`,
-          sound: true,
-        },
-        trigger: {
-          seconds: 1,
-        },
-      });
     }
   }
 );
@@ -202,20 +190,14 @@ export default function Campuses() {
 
   const registerGeofences = async (campusData) => {
     // Vraag notificatie permissies (vereist voor notificaties)
-    const { status: notificationStatus } = await Notifications.requestPermissionsAsync();
-    if (notificationStatus !== 'granted') {
-        console.warn("Geen notificatie permissies verleend.");
-        return;
-    }
 
     const regions = campusData.map(campus => ({
-        // WAARSCHUWING: De data is omgewisseld, dus we draaien het hier om:
-        latitude: campus.longitude, // 51.04... is de Latitude
-        longitude: campus.latitude,  // 3.73... is de Longitude
-        radius: campus.radius_meters, // De straal in meters (bv. 50m)
+        latitude: campus.longitude,
+        longitude: campus.latitude,
+        radius: campus.radius_meters,
         notifyOnEnter: true,
-        notifyOnExit: false, // Optioneel
-        identifier: campus.name // Gebruik de naam als unieke ID
+        notifyOnExit: false,
+        identifier: campus.name
     }));
 
     if (regions.length > 0) {
