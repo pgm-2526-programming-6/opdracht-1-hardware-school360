@@ -19,3 +19,19 @@ export const getAttendanceSessions = async () => {
   }
   return [];
 };
+
+export const getProfileById = async () => {
+  const {
+    data: { user },
+  } = await API.auth.getUser();
+  const userId = user?.id;
+  const response = await API.from("profile")
+    .select("*")
+    .eq("id", userId)
+    .single();
+  if (response && response.data) {
+    console.log("getProfileById response", response.data);
+    return response.data;
+  }
+  return null;
+};
