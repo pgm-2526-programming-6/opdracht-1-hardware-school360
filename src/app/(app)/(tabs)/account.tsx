@@ -44,6 +44,13 @@ export default function Account() {
           email="school.360@student.arteveldehs.be"
         />
 
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push("/(app)/attendance")}
+        >
+          <Text style={styles.buttonText}>View Attendance List</Text>
+        </TouchableOpacity>
+
         <Text style={styles.sectionHeader}>Settings</Text>
 
         <SettingsCard
@@ -109,6 +116,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: "#111",
   },
+  button: {
+    marginTop: 16,
+    alignItems: "center",
+    backgroundColor: "#f2994a",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
   logoutButton: {
     marginTop: 20,
     paddingVertical: 12,
