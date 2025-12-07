@@ -16,16 +16,6 @@ export default function Attendance() {
   const [attendanceSessions, setAttendanceSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const handlePreviousDay = () => {
-    // TODO: Add logic to fetch previous day's attendance
-    console.log("Previous day");
-  };
-
-  const handleNextDay = () => {
-    // TODO: Add logic to fetch next day's attendance
-    console.log("Next day");
-  };
-
   const handleGoBack = () => {
     router.back();
   };
@@ -51,42 +41,41 @@ export default function Attendance() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
-        <Text style={styles.title}>All Attendance Sessions</Text>
-        <FlatList
-          data={attendanceSessions}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.item}>
-              <Text style={styles.name}>
-                {item.profile?.first_name ?? "Unknown"}
-                {item.profile?.last_name ?? ""}
-              </Text>
-              <Text style={styles.campus}>
-                Campus: {item.campus?.name ?? "Unknown campus"}
-              </Text>
-              <Text style={styles.date}>Date: {item.date ?? "-"}</Text>
-              <Text>
-                Arrival: {item.arrival_time ?? "-"} | Departure:{" "}
-                {item.departure_time ?? "-"}
-              </Text>
-            </View>
-          )}
-          ListEmptyComponent={<Text>No attendance sessions found.</Text>}
-        />
-      </View>
-      <AttendanceBottomNav
-        onPreviousDay={handlePreviousDay}
-        onNextDay={handleNextDay}
-        onGoBack={handleGoBack}
-      />
-    </SafeAreaView>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Today&apos;s Attendance Sessions</Text>
+          <FlatList
+            data={attendanceSessions}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.item}>
+                <Text style={styles.name}>
+                  {item.profile?.first_name ?? "Unknown"}
+                  {item.profile?.last_name ?? ""}
+                </Text>
+                <Text style={styles.campus}>
+                  Campus: {item.campus?.name ?? "Unknown campus"}
+                </Text>
+                <Text style={styles.date}>Date: {item.date ?? "-"}</Text>
+                <Text>
+                  Arrival: {item.arrival_time ?? "-"} | Departure:{" "}
+                  {item.departure_time ?? "-"}
+                </Text>
+              </View>
+            )}
+            ListEmptyComponent={<Text>No attendance sessions found.</Text>}
+          />
+        </View>
+      </SafeAreaView>
+      <AttendanceBottomNav onGoBack={handleGoBack} />
+    </View>
   );
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#f5f6f8" },
+  safeArea: { flex: 1 },
   container: { flex: 1, padding: 16 },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 16 },
   item: {
