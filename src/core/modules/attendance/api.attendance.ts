@@ -10,7 +10,6 @@ export const getAttendanceSessions = async () => {
     campus:campus_id ( name )
   `);
   if (response && response.data) {
-    console.log("getAttendanceSessions response", response.data[0]);
     return response.data;
   }
   return [];

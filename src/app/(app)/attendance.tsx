@@ -1,5 +1,6 @@
+import AttendanceBottomNav from "@/src/components/design/AttendanceBottomNav";
 import { getAttendanceSessions } from "@/src/core/modules/attendance/api.attendance";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,8 +12,23 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Attendance() {
+  const router = useRouter();
   const [attendanceSessions, setAttendanceSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handlePreviousDay = () => {
+    // TODO: Add logic to fetch previous day's attendance
+    console.log("Previous day");
+  };
+
+  const handleNextDay = () => {
+    // TODO: Add logic to fetch next day's attendance
+    console.log("Next day");
+  };
+
+  const handleGoBack = () => {
+    router.back();
+  };
 
   useEffect(() => {
     const fetchAttendanceSessions = async () => {
@@ -61,6 +77,11 @@ export default function Attendance() {
           ListEmptyComponent={<Text>No attendance sessions found.</Text>}
         />
       </View>
+      <AttendanceBottomNav
+        onPreviousDay={handlePreviousDay}
+        onNextDay={handleNextDay}
+        onGoBack={handleGoBack}
+      />
     </SafeAreaView>
   );
 }
