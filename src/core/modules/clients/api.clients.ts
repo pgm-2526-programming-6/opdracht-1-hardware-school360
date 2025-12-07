@@ -19,3 +19,32 @@ export const getAttendanceSessions = async () => {
   }
   return [];
 };
+
+export const postAttendanceSession = async (
+  profileId: string,
+  campusId: string
+) => {
+  console.log("postAttendanceSession called with:", { profileId, campusId });
+
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
+  const timeOnly = now.toISOString().split("T")[1].split(".")[0]; // "18:31:35"
+
+  const { data, error } = await API.from("AttendanceSessions").insert([
+    {
+      profile_id: profileId,
+      campus_id: Number(campusId),
+      date: today,
+      arrival_time: timeOnly,
+      departure_time: timeOnly,
+    },
+  ]);
+
+  if (error) {
+    console.error("Supabase insert error:", error);
+    throw new Error(error.message || "Failed to insert attendance");
+  }
+
+  console.log("Insert successful:", data);
+  return data ?? [];
+};

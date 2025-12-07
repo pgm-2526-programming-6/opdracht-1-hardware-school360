@@ -3,7 +3,7 @@ import { Auth, CreateUserBody, LoginBody } from "./types.auth";
 
 export const registerUser = async (user: CreateUserBody) => {
   const { email, password, first_name, last_name } = user;
-  
+
   try {
     const { data, error } = await API.auth.signUp({
       email,
@@ -47,6 +47,7 @@ export const getCurrentAuth = async (): Promise<Auth | null> => {
 
   return {
     user: {
+      id: user.id,
       email: user.email ?? "",
       first_name,
       last_name,

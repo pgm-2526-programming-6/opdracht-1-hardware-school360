@@ -1,4 +1,8 @@
-import { getCampuses } from "@/src/core/modules/clients/api.clients";
+import useAuth from "@/src/components/functional/auth/useAuth";
+import {
+  getCampuses,
+  postAttendanceSession,
+} from "@/src/core/modules/clients/api.clients";
 import { Entypo } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
@@ -72,6 +76,7 @@ TaskManager.defineTask(
   }
 );
 export default function Campuses() {
+  const { auth } = useAuth();
   const [region, setRegion] = useState<{
     latitude: number;
     longitude: number;
@@ -80,7 +85,6 @@ export default function Campuses() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [campuses, setCampuses] = useState<any[]>([]);
-  const [attendanceMessage, setAttendanceMessage] = useState<boolean>(false);
   const [activePrompt, setActivePrompt] = useState<{
     id?: string;
     name?: string;
@@ -311,43 +315,6 @@ export default function Campuses() {
     };
   }, []);
 
-  // Check proximity to campuses when the user's region or campus list changes.
-  useEffect(() => {
-    if (!region || campuses.length === 0) return;
-
-    try {
-      for (const campus of campuses) {
-        const latRaw =
-          campus.latitude ?? campus.latitudeint ?? campus.lat ?? null;
-        const lngRaw =
-          campus.longitude ??
-          campus.Longtitudeint ??
-          campus.lng ??
-          campus.long ??
-          null;
-        const campusLat = latRaw != null ? Number(latRaw) : NaN;
-        const campusLng = lngRaw != null ? Number(lngRaw) : NaN;
-        if (!Number.isFinite(campusLat) || !Number.isFinite(campusLng))
-          continue;
-
-        const meters = haversineDistance(
-          region.latitude,
-          region.longitude,
-          campusLat,
-          campusLng
-        );
-        if (meters <= 50) {
-          setAttendanceMessage(true);
-          return;
-        }
-      }
-      // if none are in range, clear message (optional)
-      setAttendanceMessage(false);
-    } catch (e) {
-      console.warn("proximity check error", e);
-    }
-  }, [region, campuses]);
-
   const registerGeofences = async (campusData) => {
     // Vraag notificatie permissies (vereist voor notificaties)
 
@@ -367,10 +334,30 @@ export default function Campuses() {
     }
   };
 
-  const handlePromptAnswer = (answer: "YES" | "NO") => {
+  const handlePromptAnswer = async (answer: "YES" | "NO") => {
     if (!activePrompt) return;
     console.log(`User answered ${answer} for campus`, activePrompt);
-    // TODO: call API to register attendance: send activePrompt.id and answer
+
+    if (answer === "YES") {
+      try {
+        console.log("Auth object:", JSON.stringify(auth, null, 2));
+        const userId = auth?.user?.id;
+        const campusId = activePrompt.id;
+
+        if (!userId) {
+          console.warn("No user ID found");
+          console.warn("auth.user:", auth?.user);
+          console.warn("auth.session.user.id:", auth?.session?.user?.id);
+          return;
+        }
+
+        console.log("Posting attendance:", { userId, campusId });
+        await postAttendanceSession(userId, campusId);
+        console.log("Attendance posted successfully");
+      } catch (e) {
+        console.error("Failed to post attendance", e);
+      }
+    }
     setActivePrompt(null);
   };
 
@@ -380,7 +367,7 @@ export default function Campuses() {
         content: {
           title: `Test: Ben je aanwezig?`,
           body: "Druk Ja of Nee",
-          data: { campusId: "test", campusName: "Test Campus" },
+          data: { campusId: "1", campusName: "Leeuwstraat" },
           categoryId: "ATTENDANCE",
         },
         trigger: null,
@@ -488,35 +475,16 @@ export default function Campuses() {
           </TouchableOpacity>
 
           {campuses.map((campus: any) => {
-            // Normalize possible DB fields for coordinates
-            const latRaw =
-              campus.latitude ?? campus.latitudeint ?? campus.lat ?? null;
-            const lngRaw =
-              campus.longitude ??
-              campus.Longtitudeint ??
-              campus.lng ??
-              campus.long ??
-              null;
-            const campusLat = latRaw != null ? Number(latRaw) : NaN;
-            const campusLng = lngRaw != null ? Number(lngRaw) : NaN;
-
             // Compute distance to user's current region if available
             let distanceStr = "—";
-            if (
-              region &&
-              Number.isFinite(campusLat) &&
-              Number.isFinite(campusLng)
-            ) {
+            if (region) {
               const meters = haversineDistance(
                 region.latitude,
                 region.longitude,
-                campusLat,
-                campusLng
+                campus.latitude,
+                campus.longitude
               );
               distanceStr = formatDistance(meters);
-              if (parseInt(distanceStr) <= 50 && !attendanceMessage) {
-                setAttendanceMessage(true);
-              }
             }
 
             return (
@@ -525,42 +493,6 @@ export default function Campuses() {
                 style={styles.card}
                 activeOpacity={0.8}
               >
-                {attendanceMessage && parseInt(distanceStr) <= 50 && (
-                  <View
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      justifyContent: "center",
-                      alignItems: "center",
-                      zIndex: 9999,
-                    }}
-                    pointerEvents="box-none"
-                  >
-                    <View
-                      style={{
-                        backgroundColor: "rgba(0,0,0,0.85)",
-                        paddingVertical: 12,
-                        paddingHorizontal: 18,
-                        borderRadius: 10,
-                        maxWidth: "90%",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: "#fff",
-                          fontWeight: "700",
-                          textAlign: "center",
-                        }}
-                      >
-                        Je aanwezigheid is geregistreerd voor {campus.name}!
-                      </Text>
-                    </View>
-                  </View>
-                )}
                 <View style={styles.cardLeft}>
                   <View style={styles.iconBox}>
                     <Entypo name="location" size={20} color={COLORS.primary} />
