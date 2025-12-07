@@ -1,4 +1,4 @@
-import { getAttendanceSessions } from "@/src/core/modules/clients/api.clients";
+import { getAttendanceSessions } from "@/src/core/modules/attendance/api.attendance";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -38,7 +38,7 @@ export default function Attendance() {
         renderItem={({ item }) => (
           <View style={styles.item}>
             <Text style={styles.name}>
-              {item.profile?.first_name ?? "Unknown"}{" "}
+              {item.profile?.first_name ?? "Unknown"}
               {item.profile?.last_name ?? ""}
             </Text>
             <Text style={styles.campus}>
