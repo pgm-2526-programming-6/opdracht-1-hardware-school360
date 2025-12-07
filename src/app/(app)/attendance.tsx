@@ -23,7 +23,16 @@ export default function Attendance() {
   useEffect(() => {
     const fetchAttendanceSessions = async () => {
       const data = await getAttendanceSessions();
-      setAttendanceSessions(data ?? []);
+
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date().toISOString().split("T")[0];
+
+      // Filter to only show today's attendance sessions
+      const todaysSessions = (data ?? []).filter(
+        (session: any) => session.date === today
+      );
+
+      setAttendanceSessions(todaysSessions);
       setLoading(false);
     };
     fetchAttendanceSessions();
