@@ -1,4 +1,5 @@
 import { registerUser } from "@core/modules/auth/api.auth";
+import { CreateUserBody } from "@core/modules/auth/types.auth";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useMutation } from "@tanstack/react-query";
 import { Link, useRouter } from "expo-router";
@@ -26,7 +27,15 @@ const schema = yup.object().shape({
 export default function RegisterPage() {
   const router = useRouter();
   const { mutate, isPending, error } = useMutation({
-    mutationFn: registerUser,
+    mutationFn: async (formData: CreateUserBody) => {
+      try {
+        const result = await registerUser(formData);
+        return result;
+      } catch (err) {
+        console.error("Registration failed:", err);
+        throw err;
+      }
+    },
     onSuccess: () => {
       Alert.alert("Success", "Account created! Please log in.");
       setTimeout(() => {
@@ -34,6 +43,7 @@ export default function RegisterPage() {
       }, 1000);
     },
     onError: (err) => {
+      console.error("Mutation error:", err);
       Alert.alert("Error", (err as Error).message);
     },
   });
