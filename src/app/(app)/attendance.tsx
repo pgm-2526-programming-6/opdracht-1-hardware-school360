@@ -1,4 +1,5 @@
 import { getAttendanceSessions } from "@/src/core/modules/attendance/api.attendance";
+import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -7,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Attendance() {
   const [attendanceSessions, setAttendanceSessions] = useState<any[]>([]);
@@ -23,42 +25,48 @@ export default function Attendance() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
+      <SafeAreaView style={styles.screen}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.center}>
+          <ActivityIndicator size="large" />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>All Attendance Sessions</Text>
-      <FlatList
-        data={attendanceSessions}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <Text style={styles.name}>
-              {item.profile?.first_name ?? "Unknown"}
-              {item.profile?.last_name ?? ""}
-            </Text>
-            <Text style={styles.campus}>
-              Campus: {item.campus?.name ?? "Unknown campus"}
-            </Text>
-            <Text style={styles.date}>Date: {item.date ?? "-"}</Text>
-            <Text>
-              Arrival: {item.arrival_time ?? "-"} | Departure:{" "}
-              {item.departure_time ?? "-"}
-            </Text>
-          </View>
-        )}
-        ListEmptyComponent={<Text>No attendance sessions found.</Text>}
-      />
-    </View>
+    <SafeAreaView style={styles.screen}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <Text style={styles.title}>All Attendance Sessions</Text>
+        <FlatList
+          data={attendanceSessions}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.item}>
+              <Text style={styles.name}>
+                {item.profile?.first_name ?? "Unknown"}
+                {item.profile?.last_name ?? ""}
+              </Text>
+              <Text style={styles.campus}>
+                Campus: {item.campus?.name ?? "Unknown campus"}
+              </Text>
+              <Text style={styles.date}>Date: {item.date ?? "-"}</Text>
+              <Text>
+                Arrival: {item.arrival_time ?? "-"} | Departure:{" "}
+                {item.departure_time ?? "-"}
+              </Text>
+            </View>
+          )}
+          ListEmptyComponent={<Text>No attendance sessions found.</Text>}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6f8", padding: 16 },
+  screen: { flex: 1, backgroundColor: "#f5f6f8" },
+  container: { flex: 1, padding: 16 },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 16 },
   item: {
     backgroundColor: "#fff",
