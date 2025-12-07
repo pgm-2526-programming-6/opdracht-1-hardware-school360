@@ -26,9 +26,12 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
+.env
+
 # macOS
 .DS_Store
 *.pem
+supabase/
 
 # local env files
 .env*.local

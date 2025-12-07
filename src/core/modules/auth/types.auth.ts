@@ -1,7 +1,4 @@
-import { TablesInsert } from "@core/network/supabase/database.types";
 import { Session } from "@supabase/supabase-js";
-
-type CreateProfileBody = Omit<TablesInsert<"profiles">, "id">;
 
 export type Auth = {
   session: Session;
@@ -10,7 +7,9 @@ export type Auth = {
 
 export type User = {
   email: string;
-} & Profile;
+  first_name: string;
+  last_name: string;
+};
 
 export type LoginBody = {
   email: string;
@@ -20,4 +19,6 @@ export type LoginBody = {
 export type CreateUserBody = {
   email: string;
   password: string;
-} & CreateProfileBody;
+  first_name: string;
+  last_name: string;
+};

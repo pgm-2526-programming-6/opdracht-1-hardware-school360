@@ -7,6 +7,7 @@ export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
+        tabBarStyle: { backgroundColor: "#fff" },
         headerShown: false,
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: "rgba(0,0,0,0.6)",
@@ -21,22 +22,23 @@ export default function AppLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="campuses"
+        options={{
+          title: "Campuses",
+          tabBarIcon: ({ color, size }) => (
+            <Entypo name="location" size={size} color={color} />
+          ),
+        }}
+      />
+      
       <Tabs.Screen
         name="account"
         options={{
           title: "Account",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="Campuses"
-        options={{
-          title: "Campuses",
-          tabBarIcon: ({ color, size }) => (
-            <Entypo name="location" size={size} color={color} />
           ),
         }}
       />
