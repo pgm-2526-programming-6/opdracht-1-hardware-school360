@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -15,27 +16,38 @@ export default function Attendance() {
   const router = useRouter();
   const [attendanceSessions, setAttendanceSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleGoBack = () => {
     router.back();
   };
 
+  const fetchAttendanceSessions = async () => {
+    const data = await getAttendanceSessions();
+
+    // todays date in YYYY-MM-DD format
+    const today = new Date().toISOString().split("T")[0];
+
+    // Filter to only show today's attendance sessions
+    const todaysSessions = (data ?? []).filter(
+      (session: any) => session.date === today
+    );
+
+    setAttendanceSessions(todaysSessions);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchAttendanceSessions();
+    setRefreshing(false);
+  };
+
   useEffect(() => {
-    const fetchAttendanceSessions = async () => {
-      const data = await getAttendanceSessions();
-
-      // Get today's date in YYYY-MM-DD format
-      const today = new Date().toISOString().split("T")[0];
-
-      // Filter to only show today's attendance sessions
-      const todaysSessions = (data ?? []).filter(
-        (session: any) => session.date === today
-      );
-
-      setAttendanceSessions(todaysSessions);
+    const loadData = async () => {
+      await fetchAttendanceSessions();
       setLoading(false);
     };
-    fetchAttendanceSessions();
+    loadData();
   }, []);
 
   if (loading) {
@@ -58,6 +70,9 @@ export default function Attendance() {
           <FlatList
             data={attendanceSessions}
             keyExtractor={(item) => item.id.toString()}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
             renderItem={({ item }) => (
               <View style={styles.item}>
                 <Text style={styles.name}>
