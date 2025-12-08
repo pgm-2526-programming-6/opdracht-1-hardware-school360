@@ -1,4 +1,4 @@
-import { getProfileById } from "@/src/core/modules/clients/api.clients";
+import { getProfileById } from "@/src/core/modules/users/api.users";
 import useAuth from "@functional/auth/useAuth";
 import useUserRole from "@functional/auth/useUserRole";
 import { useRouter } from "expo-router";
