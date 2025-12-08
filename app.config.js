@@ -19,7 +19,11 @@ module.exports = {
       },
     },
     android: {
-      permissions: ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
+      permissions: [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+      ],
       config: {
         googleMaps: {
           apiKey: process.env.GOOGLE_MAPS_API_ANDROID_KEY,

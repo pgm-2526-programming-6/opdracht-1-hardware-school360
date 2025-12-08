@@ -2,6 +2,7 @@ import useAuth from "@/src/components/functional/auth/useAuth";
 import {
   getCampuses,
   postAttendanceSession,
+  updateDepartureTime,
 } from "@/src/core/modules/clients/api.clients";
 import { Entypo } from "@expo/vector-icons";
 import * as Location from "expo-location";
@@ -37,6 +38,7 @@ const Marker = MapsModule
 const PROVIDER_GOOGLE = MapsModule ? MapsModule.PROVIDER_GOOGLE : undefined;
 const GEOFENCE_TASK_NAME = "CALCULATE_RADIUS";
 const { width } = Dimensions.get("window");
+let geofenceStartTime = 0; // Track when geofences were registered
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -54,6 +56,16 @@ TaskManager.defineTask(
       return;
     }
 
+    // Ignore initial exit events within 5 seconds of geofence registration
+    const timeSinceStart = Date.now() - geofenceStartTime;
+    if (
+      eventType === Location.GeofencingEventType.Exit &&
+      timeSinceStart < 5000
+    ) {
+      console.log("Ignoring initial exit event");
+      return;
+    }
+
     if (eventType === Location.GeofencingEventType.Enter) {
       const campusId = region.identifier || "campus";
       const campusName = region.identifier || "campus";
@@ -64,13 +76,32 @@ TaskManager.defineTask(
           content: {
             title: `Aangekomen bij ${campusName}`,
             body: "Ben je aanwezig? Antwoord Ja of Nee",
-            data: { campusId, campusName },
+            data: { campusId, campusName, action: "enter" },
             categoryId: "ATTENDANCE",
           },
           trigger: null,
         });
       } catch (e) {
         console.warn("Failed to schedule notification from geofence task", e);
+      }
+    }
+
+    if (eventType === Location.GeofencingEventType.Exit) {
+      const campusId = region.identifier || "campus";
+      const campusName = region.identifier || "campus";
+      console.log(`Je hebt ${campusName} verlaten`);
+
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `${campusName} verlaten`,
+            body: "Je vertrektijd wordt geregistreerd",
+            data: { campusId, campusName, action: "exit" },
+          },
+          trigger: null,
+        });
+      } catch (e) {
+        console.warn("Failed to schedule exit notification", e);
       }
     }
   }
@@ -143,9 +174,25 @@ export default function Campuses() {
         ]);
 
         respSub = Notifications.addNotificationResponseReceivedListener(
-          (response) => {
+          async (response) => {
             const actionId = response.actionIdentifier;
             const data = response.notification.request.content.data || {};
+
+            // Handle exit event (automatic departure time update)
+            if (data.action === "exit") {
+              const userId = auth?.user?.id;
+              if (userId && data.campusId) {
+                try {
+                  await updateDepartureTime(userId, data.campusId);
+                  console.log("Departure time updated");
+                } catch (e) {
+                  console.error("Failed to update departure time", e);
+                }
+              }
+              return;
+            }
+
+            // Handle enter event actions
             if (actionId === "YES") {
               console.log("Gebruiker kiest JA voor aanwezig:", data);
               // TODO: stuur naar API of bewaar lokaal
@@ -187,25 +234,19 @@ export default function Campuses() {
         setLoading(false);
 
         try {
-          const res = await getCampuses();
-          const data = Array.isArray(res) ? res : res?.data ?? [];
-          console.log(
-            "getCampuses result count:",
-            Array.isArray(data) ? data.length : 0
-          );
-          if (mounted) {
-            setCampuses(data);
-            if (mounted && res && Array.isArray(res.data)) {
-              const campusData = res.data;
-              setCampuses(campusData);
+          const campusData = await getCampuses();
+          console.log("getCampuses result count:", campusData.length);
 
-              // 2. Hier registreren we de Geofences!
-              await registerGeofences(campusData);
-            }
+          if (mounted && Array.isArray(campusData)) {
+            setCampuses(campusData);
+
+            // Registreer geofences met campus data
+            await registerGeofences(campusData);
+
             // Try to fit the map to coordinates after campuses are set.
             // Build a coordinates array with numeric lat/lng, supporting different DB field names.
             try {
-              const coords = data
+              const coords = campusData
                 .map((c: any) => {
                   const latitude = c.latitude;
                   const longitude = c.longitude;
@@ -316,66 +357,62 @@ export default function Campuses() {
   }, []);
 
   const registerGeofences = async (campusData) => {
-    // Vraag notificatie permissies (vereist voor notificaties)
+    try {
+      // 1. Vraag background location permission
+      const { status: foregroundStatus } =
+        await Location.requestForegroundPermissionsAsync();
+      if (foregroundStatus !== "granted") {
+        console.warn("Foreground location permission not granted");
+        return;
+      }
 
-    const regions = campusData.map((campus) => ({
-      // Ensure latitude/longitude mapping is correct
-      latitude: Number(campus.latitude),
-      longitude: Number(campus.longitude),
-      radius: campus.radius_meters || 50,
-      notifyOnEnter: true,
-      notifyOnExit: false,
-      identifier: campus.id != null ? String(campus.id) : campus.name,
-    }));
+      const { status: backgroundStatus } =
+        await Location.requestBackgroundPermissionsAsync();
+      if (backgroundStatus !== "granted") {
+        console.warn("Background location permission not granted");
+        return;
+      }
 
-    if (regions.length > 0) {
-      await Location.startGeofencingAsync(GEOFENCE_TASK_NAME, regions);
-      console.log(`Succesvol ${regions.length} geofences geregistreerd.`);
+      console.log("Location permissions granted");
+
+      const regions = campusData.map((campus) => ({
+        latitude: Number(campus.latitude),
+        longitude: Number(campus.longitude),
+        radius: campus.radius_meters || 50,
+        notifyOnEnter: true,
+        notifyOnExit: true,
+        identifier: campus.id != null ? String(campus.id) : campus.name,
+      }));
+
+      if (regions.length > 0) {
+        geofenceStartTime = Date.now(); // Record when geofences are registered
+        await Location.startGeofencingAsync(GEOFENCE_TASK_NAME, regions);
+        console.log(`Succesvol ${regions.length} geofences geregistreerd.`);
+      }
+    } catch (error) {
+      console.error("Failed to register geofences:", error);
     }
   };
 
   const handlePromptAnswer = async (answer: "YES" | "NO") => {
     if (!activePrompt) return;
-    console.log(`User answered ${answer} for campus`, activePrompt);
 
     if (answer === "YES") {
       try {
-        console.log("Auth object:", JSON.stringify(auth, null, 2));
         const userId = auth?.user?.id;
         const campusId = activePrompt.id;
 
         if (!userId) {
-          console.warn("No user ID found");
-          console.warn("auth.user:", auth?.user);
-          console.warn("auth.session.user.id:", auth?.session?.user?.id);
+          console.warn("User not logged in");
           return;
         }
 
-        console.log("Posting attendance:", { userId, campusId });
         await postAttendanceSession(userId, campusId);
-        console.log("Attendance posted successfully");
       } catch (e) {
-        console.error("Failed to post attendance", e);
+        console.error("Failed to register attendance", e);
       }
     }
     setActivePrompt(null);
-  };
-
-  const sendTestNotification = async () => {
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `Test: Ben je aanwezig?`,
-          body: "Druk Ja of Nee",
-          data: { campusId: "1", campusName: "Leeuwstraat" },
-          categoryId: "ATTENDANCE",
-        },
-        trigger: null,
-      });
-      console.log("Test notification scheduled");
-    } catch (e) {
-      console.warn("Failed to schedule test notification", e);
-    }
   };
 
   return (
@@ -458,21 +495,6 @@ export default function Campuses() {
         >
           <Text style={styles.title}>School Campuses</Text>
           <Text style={styles.subtitle}>Select a campus to view details</Text>
-          <TouchableOpacity
-            onPress={sendTestNotification}
-            style={{
-              marginTop: 8,
-              backgroundColor: COLORS.primary,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 8,
-              alignSelf: "flex-start",
-            }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>
-              Test Notificatie
-            </Text>
-          </TouchableOpacity>
 
           {campuses.map((campus: any) => {
             // Compute distance to user's current region if available
