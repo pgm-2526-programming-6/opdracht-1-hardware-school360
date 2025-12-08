@@ -1,8 +1,23 @@
+import useAuth from "@/src/components/functional/auth/useAuth";
+import { getProfile } from "@/src/core/modules/home/api.home";
+import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const HomeView = () => {
-  const name = "Jarne";
+  const [profile, setProfile] = useState<any>(null);
+  const { auth } = useAuth();
+
+  useEffect(() => {
+    if (auth?.user?.id) {
+      const fetchProfile = async () => {
+        const data = await getProfile(auth.user.id);
+        setProfile(data);
+      };
+      fetchProfile();
+    }
+  }, [auth]);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.statusBadge}>
@@ -11,7 +26,12 @@ const HomeView = () => {
       </View>
 
       <View style={styles.header}>
-        <Text style={styles.title}>Welcome, {name}</Text>
+        <Text style={styles.title}>
+          Welcome,{" "}
+          {profile
+            ? `${profile.first_name}`
+            : "Loading..."}
+        </Text>{" "}
         <Text style={styles.subtitle}>
           Your attendance is automatically tracked
         </Text>
