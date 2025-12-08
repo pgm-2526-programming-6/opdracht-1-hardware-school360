@@ -1,6 +1,7 @@
 import useAuth from "@/src/components/functional/auth/useAuth";
 import { getProfile } from "@/src/core/modules/home/api.home";
 import { useMonthlyAttendance } from "@/src/core/utils/useMonthlyAttendance";
+import { useTotalAttendance } from "@/src/core/utils/useTotalAttendance";
 import { useWeeklyAttendance } from "@/src/core/utils/useWeeklyAttendance";
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
@@ -13,6 +14,9 @@ const HomeView = () => {
     auth?.user?.id
   );
   const { monthlyCount, loading: monthlyLoading } = useMonthlyAttendance(
+    auth?.user?.id
+  );
+  const { totalCount, loading: totalLoading } = useTotalAttendance(
     auth?.user?.id
   );
 
@@ -79,7 +83,9 @@ const HomeView = () => {
       <View style={styles.card}>
         <View>
           <Text style={styles.cardTitle}>This Month</Text>
-          <Text style={styles.cardNumber}>{monthlyLoading ? "..." : monthlyCount}</Text>
+          <Text style={styles.cardNumber}>
+            {monthlyLoading ? "..." : monthlyCount}
+          </Text>
         </View>
         <View style={styles.cardContainer}>
           <Image
@@ -92,7 +98,9 @@ const HomeView = () => {
       <View style={styles.card}>
         <View>
           <Text style={styles.cardTitle}>Total</Text>
-          <Text style={styles.cardNumber}>0</Text>
+          <Text style={styles.cardNumber}>
+            {totalLoading ? "..." : totalCount}
+          </Text>
         </View>
         <View style={styles.cardContainer}>
           <Image
