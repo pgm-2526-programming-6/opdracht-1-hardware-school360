@@ -1,5 +1,6 @@
 import useAuth from "@/src/components/functional/auth/useAuth";
 import { getProfile } from "@/src/core/modules/home/api.home";
+import { useWeeklyAttendance } from "@/src/core/utils/useWeeklyAttendance";
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,6 +8,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const HomeView = () => {
   const [profile, setProfile] = useState<any>(null);
   const { auth } = useAuth();
+  const { weeklyCount, attendedDays, loading } = useWeeklyAttendance(
+    auth?.user?.id
+  );
 
   useEffect(() => {
     if (auth?.user?.id) {
@@ -27,11 +31,8 @@ const HomeView = () => {
 
       <View style={styles.header}>
         <Text style={styles.title}>
-          Welcome,{" "}
-          {profile
-            ? `${profile.first_name}`
-            : "Loading..."}
-        </Text>{" "}
+          Welcome, {profile ? `${profile.first_name}` : "Loading..."}
+        </Text>
         <Text style={styles.subtitle}>
           Your attendance is automatically tracked
         </Text>
@@ -41,10 +42,16 @@ const HomeView = () => {
         {["Ma", "Di", "Woe", "Do", "Vr"].map((day, i) => (
           <View
             key={i}
-            style={[styles.dayPill, i === 1 ? styles.dayActive : null]}
+            style={[
+              styles.dayPill,
+              attendedDays.includes(i) ? styles.dayActive : null,
+            ]}
           >
             <Text
-              style={[styles.dayText, i === 1 ? styles.dayTextActive : null]}
+              style={[
+                styles.dayText,
+                attendedDays.includes(i) ? styles.dayTextActive : null,
+              ]}
             >
               {day}
             </Text>
@@ -55,7 +62,7 @@ const HomeView = () => {
       <View style={styles.card}>
         <View>
           <Text style={styles.cardTitle}>This Week</Text>
-          <Text style={styles.cardNumber}>0</Text>
+          <Text style={styles.cardNumber}>{loading ? "..." : weeklyCount}</Text>
         </View>
         <View style={styles.cardContainer}>
           <Image
