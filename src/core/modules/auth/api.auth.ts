@@ -1,35 +1,18 @@
 import { API } from "@core/network/supabase/api";
 import { Auth, CreateUserBody, LoginBody } from "./types.auth";
 
-export const registerUser = async (user: CreateUserBody) => {
+export const registerUser = (user: CreateUserBody) => {
   const { email, password, first_name, last_name } = user;
-
-  try {
-    const { data, error } = await API.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          first_name,
-          last_name,
-        },
+  return API.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        first_name,
+        last_name,
       },
-    });
-
-    if (error) {
-      console.error("Supabase signup error:", error);
-      throw new Error(error.message || "Failed to register user");
-    }
-
-    if (!data.user) {
-      throw new Error("User creation failed - no user data returned");
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Registration error:", error);
-    throw error;
-  }
+    },
+  });
 };
 
 export const getCurrentAuth = async (): Promise<Auth | null> => {
@@ -47,7 +30,6 @@ export const getCurrentAuth = async (): Promise<Auth | null> => {
 
   return {
     user: {
-      id: user.id,
       email: user.email ?? "",
       first_name,
       last_name,
@@ -57,6 +39,7 @@ export const getCurrentAuth = async (): Promise<Auth | null> => {
 };
 
 export const login = async ({ email, password }: LoginBody): Promise<Auth> => {
+  // 1. Inloggen bij Supabase
   const { data, error } = await API.auth.signInWithPassword({
     email,
     password,
@@ -70,6 +53,7 @@ export const login = async ({ email, password }: LoginBody): Promise<Auth> => {
     throw new Error("User not found after login");
   }
 
+  // 2. Ook profile informatie opvragen
   const auth = await getCurrentAuth();
 
   if (!auth) {
