@@ -3,6 +3,7 @@ import useAuth from '../components/functional/auth/useAuth'; // Als je een auth 
 
 export default function Index() {
   const { user } = useAuth(); // Haal de authenticatiestatus op
+
   // Als de gebruiker is ingelogd, ga naar de hoofdapp-groep
   if (user) {
     return <Redirect href="/home" />; 
