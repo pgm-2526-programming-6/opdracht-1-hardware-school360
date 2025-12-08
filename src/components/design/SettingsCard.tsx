@@ -1,3 +1,4 @@
+import { userSettings } from "@/src/core/modules/users/api.users";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
@@ -29,7 +30,14 @@ export default function SettingsCard({
 }: Props) {
   const [enabled, setEnabled] = useState(initialValue);
 
-  const handleToggle = () => setEnabled((v) => !v);
+  const handleToggle = () => {
+    const settingKey = name.toLowerCase() as "sounds" | "vibrations";
+    userSettings(settingKey, { [settingKey]: !enabled } as {
+      sounds: boolean;
+      vibrations: boolean;
+    });
+    setEnabled((v) => !v);
+  };
 
   if (variant === "link") {
     return (

@@ -1,7 +1,8 @@
+import { getProfileById } from "@/src/core/modules/users/api.users";
 import useAuth from "@functional/auth/useAuth";
 import useUserRole from "@functional/auth/useUserRole";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -18,6 +19,21 @@ export default function Account() {
   const router = useRouter();
   const { logout } = useAuth();
   const { isTeacher, loading } = useUserRole();
+  const [response, setResponse] = useState<any>({});
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await getProfileById();
+        setResponse(res);
+        console.log("Current Auth:", res);
+      } catch (error) {
+        console.error("Error getting current auth:", error);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleLogout = async () => {
     Alert.alert("Logout", "Are you sure you want to log out?", [
@@ -39,11 +55,10 @@ export default function Account() {
         <Text style={styles.header}>Account</Text>
 
         <ProfileCard
-          name="school360"
-          id={360245}
-          email="school.360@student.arteveldehs.be"
+          name={response.first_name + " " + response.last_name}
+          id={response.id}
+          email={response.email}
         />
-
         <TouchableOpacity
           style={styles.button}
           onPress={() => router.push("/(app)/attendance")}
@@ -68,11 +83,11 @@ export default function Account() {
         <SettingsCard name="Privacy & Security" variant="link" />
         <SettingsCard name="Help & Support" variant="link" />
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.teacherButton, 
-            (!isTeacher || loading) && styles.teacherButtonDisabled
-          ]} 
+            styles.teacherButton,
+            (!isTeacher || loading) && styles.teacherButtonDisabled,
+          ]}
           onPress={() => router.push("/(app)/teacher" as any)}
           disabled={!isTeacher || loading}
         >
@@ -80,9 +95,7 @@ export default function Account() {
             {loading ? "Loading..." : "Teacher Dashboard"}
           </Text>
           {!isTeacher && !loading && (
-            <Text style={styles.teacherButtonSubtext}>
-              (Teachers only)
-            </Text>
+            <Text style={styles.teacherButtonSubtext}>(Teachers only)</Text>
           )}
         </TouchableOpacity>
 
