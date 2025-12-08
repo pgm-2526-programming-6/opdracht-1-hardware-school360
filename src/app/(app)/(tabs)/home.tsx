@@ -1,5 +1,6 @@
 import useAuth from "@/src/components/functional/auth/useAuth";
 import { getProfile } from "@/src/core/modules/home/api.home";
+import { useMonthlyAttendance } from "@/src/core/utils/useMonthlyAttendance";
 import { useWeeklyAttendance } from "@/src/core/utils/useWeeklyAttendance";
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
@@ -9,6 +10,9 @@ const HomeView = () => {
   const [profile, setProfile] = useState<any>(null);
   const { auth } = useAuth();
   const { weeklyCount, attendedDays, loading } = useWeeklyAttendance(
+    auth?.user?.id
+  );
+  const { monthlyCount, loading: monthlyLoading } = useMonthlyAttendance(
     auth?.user?.id
   );
 
@@ -75,7 +79,7 @@ const HomeView = () => {
       <View style={styles.card}>
         <View>
           <Text style={styles.cardTitle}>This Month</Text>
-          <Text style={styles.cardNumber}>0</Text>
+          <Text style={styles.cardNumber}>{monthlyLoading ? "..." : monthlyCount}</Text>
         </View>
         <View style={styles.cardContainer}>
           <Image
