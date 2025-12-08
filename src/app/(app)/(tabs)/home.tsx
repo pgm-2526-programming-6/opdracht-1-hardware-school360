@@ -1,8 +1,8 @@
 import useAuth from "@/src/components/functional/auth/useAuth";
 import { getProfile } from "@/src/core/modules/home/api.home";
-import { useMonthlyAttendance } from "@/src/core/utils/useMonthlyAttendance";
-import { useTotalAttendance } from "@/src/core/utils/useTotalAttendance";
-import { useWeeklyAttendance } from "@/src/core/utils/useWeeklyAttendance";
+import { useMonthlyAttendance } from "@/src/hooks/attendance/useMonthlyAttendance";
+import { useTotalAttendance } from "@/src/hooks/attendance/useTotalAttendance";
+import { useWeeklyAttendance } from "@/src/hooks/attendance/useWeeklyAttendance";
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
