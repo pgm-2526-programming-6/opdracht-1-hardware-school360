@@ -1,20 +1,26 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Entypo } from "@expo/vector-icons";
+import useAuth from "@/src/components/functional/auth/useAuth";
 import {
+  getCampuses,
+  postAttendanceSession,
+  updateDepartureTime,
+} from "@/src/core/modules/clients/api.clients";
+import { Entypo } from "@expo/vector-icons";
+import * as Location from "expo-location";
+import * as Notifications from "expo-notifications";
+import * as TaskManager from "expo-task-manager";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
   Dimensions,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
-  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as Location from "expo-location";
 import { COLORS } from "../../../style/colors";
-import { getCampuses } from "@/src/core/modules/clients/api.clients";
-import * as TaskManager from "expo-task-manager";
 
 // Dynamically require react-native-maps to avoid bundler/runtime errors in plain Expo Go
 let MapsModule: any = null;
@@ -22,6 +28,7 @@ try {
   MapsModule = require("react-native-maps");
 } catch (err) {
   MapsModule = null;
+  console.warn(err);
 }
 
 const MapView = MapsModule ? MapsModule.default ?? MapsModule.MapView : null;
@@ -31,22 +38,76 @@ const Marker = MapsModule
 const PROVIDER_GOOGLE = MapsModule ? MapsModule.PROVIDER_GOOGLE : undefined;
 const GEOFENCE_TASK_NAME = "CALCULATE_RADIUS";
 const { width } = Dimensions.get("window");
+let geofenceStartTime = 0; // Track when geofences were registered
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 TaskManager.defineTask(
   GEOFENCE_TASK_NAME,
-  ({ data: { eventType, region }, error }) => {
+  async ({ data: { eventType, region }, error }) => {
     if (error) {
       console.log(error);
       return;
     }
 
+    // Ignore initial exit events within 5 seconds of geofence registration
+    const timeSinceStart = Date.now() - geofenceStartTime;
+    if (
+      eventType === Location.GeofencingEventType.Exit &&
+      timeSinceStart < 5000
+    ) {
+      console.log("Ignoring initial exit event");
+      return;
+    }
+
     if (eventType === Location.GeofencingEventType.Enter) {
+      const campusId = region.identifier || "campus";
       const campusName = region.identifier || "campus";
       console.log(`Je bent aangekomen bij: ${campusName}`);
+
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `Aangekomen bij ${campusName}`,
+            body: "Ben je aanwezig? Antwoord Ja of Nee",
+            data: { campusId, campusName, action: "enter" },
+            categoryId: "ATTENDANCE",
+          },
+          trigger: null,
+        });
+      } catch (e) {
+        console.warn("Failed to schedule notification from geofence task", e);
+      }
+    }
+
+    if (eventType === Location.GeofencingEventType.Exit) {
+      const campusId = region.identifier || "campus";
+      const campusName = region.identifier || "campus";
+      console.log(`Je hebt ${campusName} verlaten`);
+
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `${campusName} verlaten`,
+            body: "Je vertrektijd wordt geregistreerd",
+            data: { campusId, campusName, action: "exit" },
+          },
+          trigger: null,
+        });
+      } catch (e) {
+        console.warn("Failed to schedule exit notification", e);
+      }
     }
   }
 );
 export default function Campuses() {
+  const { auth } = useAuth();
   const [region, setRegion] = useState<{
     latitude: number;
     longitude: number;
@@ -55,10 +116,100 @@ export default function Campuses() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [campuses, setCampuses] = useState<any[]>([]);
+  const [activePrompt, setActivePrompt] = useState<{
+    id?: string;
+    name?: string;
+  } | null>(null);
   const mapRef = useRef<any>(null);
   const watchRef = useRef<any>(null);
+  const lastCoordsRef = useRef<{ latitude: number; longitude: number } | null>(
+    null
+  );
+
+  // Haversine distance (meters) between two lat/lng points
+  const haversineDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ) => {
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371000; // Earth radius in meters
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // meters
+  };
+
+  const formatDistance = (meters: number) => {
+    if (!Number.isFinite(meters)) return "—";
+    if (meters < 1000) return `${Math.round(meters)} m`;
+    return `≈ ${(meters / 1000).toFixed(1)} km`;
+  };
 
   useEffect(() => {
+    // Register notification category and response listener
+    let respSub: any = null;
+    const setupNotifications = async () => {
+      try {
+        await Notifications.requestPermissionsAsync();
+        // Define actions for attendance prompt
+        await Notifications.setNotificationCategoryAsync("ATTENDANCE", [
+          {
+            identifier: "YES",
+            buttonTitle: "Ja",
+            options: { opensAppToForeground: true },
+          },
+          {
+            identifier: "NO",
+            buttonTitle: "Nee",
+            options: { opensAppToForeground: true },
+          },
+        ]);
+
+        respSub = Notifications.addNotificationResponseReceivedListener(
+          async (response) => {
+            const actionId = response.actionIdentifier;
+            const data = response.notification.request.content.data || {};
+
+            // Handle exit event (automatic departure time update)
+            if (data.action === "exit") {
+              const userId = auth?.user?.id;
+              if (userId && data.campusId) {
+                try {
+                  await updateDepartureTime(userId, data.campusId);
+                  console.log("Departure time updated");
+                } catch (e) {
+                  console.error("Failed to update departure time", e);
+                }
+              }
+              return;
+            }
+
+            // Handle enter event actions
+            if (actionId === "YES") {
+              console.log("Gebruiker kiest JA voor aanwezig:", data);
+              // TODO: stuur naar API of bewaar lokaal
+            } else if (actionId === "NO") {
+              console.log("Gebruiker kiest NEE voor aanwezig:", data);
+            } else {
+              // gebruiker tikte op notificatie body -> toon in-app prompt
+              setActivePrompt({ id: data.campusId, name: data.campusName });
+            }
+          }
+        );
+      } catch (e) {
+        console.warn("Notification setup failed", e);
+      }
+    };
+    setupNotifications();
+
     let mounted = true;
 
     const setup = async () => {
@@ -83,25 +234,19 @@ export default function Campuses() {
         setLoading(false);
 
         try {
-          const res = await getCampuses();
-          const data = Array.isArray(res) ? res : res?.data ?? [];
-          console.log(
-            "getCampuses result count:",
-            Array.isArray(data) ? data.length : 0
-          );
-          if (mounted) {
-            setCampuses(data);
-            if (mounted && res && Array.isArray(res.data)) {
-              const campusData = res.data;
-              setCampuses(campusData);
+          const campusData = await getCampuses();
+          console.log("getCampuses result count:", campusData.length);
 
-              // 2. Hier registreren we de Geofences!
-              await registerGeofences(campusData);
-            }
+          if (mounted && Array.isArray(campusData)) {
+            setCampuses(campusData);
+
+            // Registreer geofences met campus data
+            await registerGeofences(campusData);
+
             // Try to fit the map to coordinates after campuses are set.
             // Build a coordinates array with numeric lat/lng, supporting different DB field names.
             try {
-              const coords = data
+              const coords = campusData
                 .map((c: any) => {
                   const latitude = c.latitude;
                   const longitude = c.longitude;
@@ -144,21 +289,42 @@ export default function Campuses() {
         const sub = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.Highest,
-            timeInterval: 5000,
-            distanceInterval: 1,
+            // update roughly every 2 seconds
+            timeInterval: 2000,
+            // small distance interval to still get frequent updates
+            distanceInterval: 0,
           },
           (p: any) => {
             if (!mounted) return;
+
+            const newLat = p.coords.latitude;
+            const newLng = p.coords.longitude;
+
+            // Only update region state when location changed meaningfully
+            const last = lastCoordsRef.current;
+            if (last) {
+              const moved = haversineDistance(
+                last.latitude,
+                last.longitude,
+                newLat,
+                newLng
+              );
+              // if moved less than 0.5 meter, skip state update to avoid churn
+              if (moved < 0.5) return;
+            }
+
+            lastCoordsRef.current = { latitude: newLat, longitude: newLng };
+
             setRegion((r) =>
               r
                 ? {
                     ...r,
-                    latitude: p.coords.latitude,
-                    longitude: p.coords.longitude,
+                    latitude: newLat,
+                    longitude: newLng,
                   }
                 : {
-                    latitude: p.coords.latitude,
-                    longitude: p.coords.longitude,
+                    latitude: newLat,
+                    longitude: newLng,
                     latitudeDelta: 0.01,
                     longitudeDelta: 0.01,
                   }
@@ -176,37 +342,77 @@ export default function Campuses() {
 
     return () => {
       mounted = false;
-      if (watchRef.current && typeof watchRef.current.remove === "function")
-        watchRef.current.remove();
-      if (
-        watchRef.current &&
-        typeof watchRef.current.remove === "undefined" &&
-        typeof watchRef.current === "object" &&
-        typeof watchRef.current.remove === "function"
-      )
-        watchRef.current.remove();
+      try {
+        if (watchRef.current && typeof watchRef.current.remove === "function")
+          watchRef.current.remove();
+      } catch (e) {
+        // ignore
+      }
+      try {
+        if (respSub && typeof respSub.remove === "function") respSub.remove();
+      } catch (e) {
+        // ignore
+      }
     };
   }, []);
 
   const registerGeofences = async (campusData) => {
-    // Vraag notificatie permissies (vereist voor notificaties)
+    try {
+      // 1. Vraag background location permission
+      const { status: foregroundStatus } =
+        await Location.requestForegroundPermissionsAsync();
+      if (foregroundStatus !== "granted") {
+        console.warn("Foreground location permission not granted");
+        return;
+      }
 
-    const regions = campusData.map(campus => ({
-        latitude: campus.longitude,
-        longitude: campus.latitude,
-        radius: campus.radius_meters,
+      const { status: backgroundStatus } =
+        await Location.requestBackgroundPermissionsAsync();
+      if (backgroundStatus !== "granted") {
+        console.warn("Background location permission not granted");
+        return;
+      }
+
+      console.log("Location permissions granted");
+
+      const regions = campusData.map((campus) => ({
+        latitude: Number(campus.latitude),
+        longitude: Number(campus.longitude),
+        radius: campus.radius_meters || 50,
         notifyOnEnter: true,
-        notifyOnExit: false,
-        identifier: campus.name
-    }));
+        notifyOnExit: true,
+        identifier: campus.id != null ? String(campus.id) : campus.name,
+      }));
 
-    if (regions.length > 0) {
-        await Location.startGeofencingAsync(
-            GEOFENCE_TASK_NAME, 
-            regions
-        );
+      if (regions.length > 0) {
+        geofenceStartTime = Date.now(); // Record when geofences are registered
+        await Location.startGeofencingAsync(GEOFENCE_TASK_NAME, regions);
         console.log(`Succesvol ${regions.length} geofences geregistreerd.`);
+      }
+    } catch (error) {
+      console.error("Failed to register geofences:", error);
     }
+  };
+
+  const handlePromptAnswer = async (answer: "YES" | "NO") => {
+    if (!activePrompt) return;
+
+    if (answer === "YES") {
+      try {
+        const userId = auth?.user?.id;
+        const campusId = activePrompt.id;
+
+        if (!userId) {
+          console.warn("User not logged in");
+          return;
+        }
+
+        await postAttendanceSession(userId, campusId);
+      } catch (e) {
+        console.error("Failed to register attendance", e);
+      }
+    }
+    setActivePrompt(null);
   };
 
   return (
@@ -289,26 +495,98 @@ export default function Campuses() {
         >
           <Text style={styles.title}>School Campuses</Text>
           <Text style={styles.subtitle}>Select a campus to view details</Text>
-          {campuses.map((campus: any) => (
-            <TouchableOpacity
-              key={campus.id}
-              style={styles.card}
-              activeOpacity={0.8}
-            >
-              <View style={styles.cardLeft}>
-                <View style={styles.iconBox}>
-                  <Entypo name="location" size={20} color={COLORS.primary} />
+
+          {campuses.map((campus: any) => {
+            // Compute distance to user's current region if available
+            let distanceStr = "—";
+            if (region) {
+              const meters = haversineDistance(
+                region.latitude,
+                region.longitude,
+                campus.latitude,
+                campus.longitude
+              );
+              distanceStr = formatDistance(meters);
+            }
+
+            return (
+              <TouchableOpacity
+                key={campus.id}
+                style={styles.card}
+                activeOpacity={0.8}
+              >
+                <View style={styles.cardLeft}>
+                  <View style={styles.iconBox}>
+                    <Entypo name="location" size={20} color={COLORS.primary} />
+                  </View>
                 </View>
-              </View>
-              <View style={styles.cardRight}>
-                <Text style={styles.cardTitle}>Campus {campus.name}</Text>
-                <Text style={styles.cardMeta}>Adressinformations</Text>
-                <Text style={styles.distance}>≈ 2.3km</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+                <View style={styles.cardRight}>
+                  <Text style={styles.cardTitle}>Campus {campus.name}</Text>
+                  <Text style={styles.cardMeta}>Adressinformations</Text>
+                  <Text style={styles.distance}>{distanceStr}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
+
+      {/* In-app prompt shown when user taps notification */}
+      {activePrompt && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 99999,
+            backgroundColor: "rgba(0,0,0,0.35)",
+          }}
+          pointerEvents="box-none"
+        >
+          <View
+            style={{
+              backgroundColor: "#fff",
+              padding: 18,
+              borderRadius: 10,
+              width: "90%",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontWeight: "700", marginBottom: 8 }}>
+              Ben je aanwezig bij {activePrompt.name}?
+            </Text>
+            <View style={{ flexDirection: "row", marginTop: 8 }}>
+              <TouchableOpacity
+                onPress={() => handlePromptAnswer("YES")}
+                style={{
+                  backgroundColor: COLORS.primary,
+                  paddingHorizontal: 18,
+                  paddingVertical: 10,
+                  borderRadius: 8,
+                  marginRight: 8,
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700" }}>Ja</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handlePromptAnswer("NO")}
+                style={{
+                  backgroundColor: "#eee",
+                  paddingHorizontal: 18,
+                  paddingVertical: 10,
+                  borderRadius: 8,
+                }}
+              >
+                <Text style={{ fontWeight: "700" }}>Nee</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
