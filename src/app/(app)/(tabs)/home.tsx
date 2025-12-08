@@ -12,22 +12,13 @@ const HomeView = () => {
 
       <View style={styles.header}>
         <Text style={styles.title}>Welcome, {name}</Text>
-        <Text style={styles.subtitle}>
-          Your attendance is automatically tracked
-        </Text>
+        <Text style={styles.subtitle}>Your attendance is automatically tracked</Text>
       </View>
 
       <View style={styles.weekdays}>
         {["Ma", "Di", "Woe", "Do", "Vr"].map((day, i) => (
-          <View
-            key={i}
-            style={[styles.dayPill, i === 1 ? styles.dayActive : null]}
-          >
-            <Text
-              style={[styles.dayText, i === 1 ? styles.dayTextActive : null]}
-            >
-              {day}
-            </Text>
+          <View key={i} style={[styles.dayPill, i === 1 ? styles.dayActive : null]}>
+            <Text style={[styles.dayText, i === 1 ? styles.dayTextActive : null]}>{day}</Text>
           </View>
         ))}
       </View>
@@ -38,10 +29,7 @@ const HomeView = () => {
           <Text style={styles.cardNumber}>0</Text>
         </View>
         <View style={styles.cardContainer}>
-          <Image
-            source={require("../../../assets/icons/callender-icon.png")}
-            style={styles.cardIcon}
-          />
+          <Image source={require("../../../assets/icons/callender-icon.png")} style={styles.cardIcon} />
         </View>
       </View>
 
@@ -51,10 +39,7 @@ const HomeView = () => {
           <Text style={styles.cardNumber}>0</Text>
         </View>
         <View style={styles.cardContainer}>
-          <Image
-            source={require("../../../assets/icons/graph.png")}
-            style={styles.cardIcon}
-          />
+          <Image source={require("../../../assets/icons/graph.png")} style={styles.cardIcon} />
         </View>
       </View>
 
@@ -64,10 +49,7 @@ const HomeView = () => {
           <Text style={styles.cardNumber}>0</Text>
         </View>
         <View style={styles.cardContainer}>
-          <Image
-            source={require("../../../assets/icons/total.png")}
-            style={styles.cardIcon}
-          />
+          <Image source={require("../../../assets/icons/total.png")} style={styles.cardIcon} />
         </View>
       </View>
     </SafeAreaView>
