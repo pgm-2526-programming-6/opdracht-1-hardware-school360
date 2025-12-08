@@ -32,7 +32,6 @@ yarn-error.*
 .DS_Store
 *.pem
 supabase/
-*.sql
 
 # local env files
 .env*.local

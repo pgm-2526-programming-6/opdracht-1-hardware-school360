@@ -1,8 +1,35 @@
+import useAuth from "@/src/components/functional/auth/useAuth";
+import { getProfile } from "@/src/core/modules/home/api.home";
+import { useMonthlyAttendance } from "@/src/hooks/attendance/useMonthlyAttendance";
+import { useTotalAttendance } from "@/src/hooks/attendance/useTotalAttendance";
+import { useWeeklyAttendance } from "@/src/hooks/attendance/useWeeklyAttendance";
+import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const HomeView = () => {
-  const name = "Jarne";
+  const [profile, setProfile] = useState<any>(null);
+  const { auth } = useAuth();
+  const { weeklyCount, attendedDays, loading } = useWeeklyAttendance(
+    auth?.user?.id
+  );
+  const { monthlyCount, loading: monthlyLoading } = useMonthlyAttendance(
+    auth?.user?.id
+  );
+  const { totalCount, loading: totalLoading } = useTotalAttendance(
+    auth?.user?.id
+  );
+
+  useEffect(() => {
+    if (auth?.user?.id) {
+      const fetchProfile = async () => {
+        const data = await getProfile(auth.user.id);
+        setProfile(data);
+      };
+      fetchProfile();
+    }
+  }, [auth]);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.statusBadge}>
@@ -11,7 +38,9 @@ const HomeView = () => {
       </View>
 
       <View style={styles.header}>
-        <Text style={styles.title}>Welcome, {name}</Text>
+        <Text style={styles.title}>
+          Welcome, {profile ? `${profile.first_name}` : "Loading..."}
+        </Text>
         <Text style={styles.subtitle}>
           Your attendance is automatically tracked
         </Text>
@@ -21,10 +50,16 @@ const HomeView = () => {
         {["Ma", "Di", "Woe", "Do", "Vr"].map((day, i) => (
           <View
             key={i}
-            style={[styles.dayPill, i === 1 ? styles.dayActive : null]}
+            style={[
+              styles.dayPill,
+              attendedDays.includes(i) ? styles.dayActive : null,
+            ]}
           >
             <Text
-              style={[styles.dayText, i === 1 ? styles.dayTextActive : null]}
+              style={[
+                styles.dayText,
+                attendedDays.includes(i) ? styles.dayTextActive : null,
+              ]}
             >
               {day}
             </Text>
@@ -35,7 +70,7 @@ const HomeView = () => {
       <View style={styles.card}>
         <View>
           <Text style={styles.cardTitle}>This Week</Text>
-          <Text style={styles.cardNumber}>0</Text>
+          <Text style={styles.cardNumber}>{loading ? "..." : weeklyCount}</Text>
         </View>
         <View style={styles.cardContainer}>
           <Image
@@ -48,7 +83,9 @@ const HomeView = () => {
       <View style={styles.card}>
         <View>
           <Text style={styles.cardTitle}>This Month</Text>
-          <Text style={styles.cardNumber}>0</Text>
+          <Text style={styles.cardNumber}>
+            {monthlyLoading ? "..." : monthlyCount}
+          </Text>
         </View>
         <View style={styles.cardContainer}>
           <Image
@@ -61,7 +98,9 @@ const HomeView = () => {
       <View style={styles.card}>
         <View>
           <Text style={styles.cardTitle}>Total</Text>
-          <Text style={styles.cardNumber}>0</Text>
+          <Text style={styles.cardNumber}>
+            {totalLoading ? "..." : totalCount}
+          </Text>
         </View>
         <View style={styles.cardContainer}>
           <Image
