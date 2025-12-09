@@ -10,18 +10,16 @@ export const useCampusStatus = (userId: string | undefined) => {
       const { data, error } = await API.from("AttendanceSessions")
         .select("*")
         .eq("profile_id", userId)
-        .is("departure_time", null)
         .order("arrival_time", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== "PGRST116") {
+      if (error) {
         throw error;
       }
 
-      return !!data;
+      return data && data.departure_time === null;
     },
     enabled: !!userId,
-    refetchInterval: 30000,
   });
 };

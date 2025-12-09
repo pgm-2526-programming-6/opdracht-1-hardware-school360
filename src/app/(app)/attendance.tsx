@@ -113,3 +113,5 @@ const styles = StyleSheet.create({
   date: { fontSize: 14, color: "#888" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
+
+export { getAttendanceSessions };
