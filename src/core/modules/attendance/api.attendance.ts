@@ -6,7 +6,6 @@ export const getAttendanceSessions = async () => {
     date,
     arrival_time,
     departure_time,
-    profile_id,
     profile:profile_id ( first_name, last_name ),
     campus:campus_id ( name )
   `);
