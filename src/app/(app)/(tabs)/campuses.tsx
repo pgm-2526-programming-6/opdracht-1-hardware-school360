@@ -1,10 +1,12 @@
 import useAuth from "@/src/components/functional/auth/useAuth";
 import {
+  getAttendanceSessions,
   getCampuses,
   postAttendanceSession,
   updateDepartureTime,
-} from "@/src/core/modules/clients/api.clients";
+} from "@/src/core/modules/campus/api.campus";
 import { Entypo } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
@@ -38,11 +40,18 @@ const Marker = MapsModule
 const PROVIDER_GOOGLE = MapsModule ? MapsModule.PROVIDER_GOOGLE : undefined;
 const GEOFENCE_TASK_NAME = "CALCULATE_RADIUS";
 const { width } = Dimensions.get("window");
-let geofenceStartTime = 0; // Track when geofences were registered
+
+// Track recent geofence events to prevent duplicate notifications
+let lastGeofenceTime: { [key: string]: number } = {};
+const GEOFENCE_DEBOUNCE_MS = 30000; // 30 seconds
+
+// Map campus IDs to names for notifications
+let campusNameMap: { [key: string]: string } = {};
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -56,19 +65,20 @@ TaskManager.defineTask(
       return;
     }
 
-    // Ignore initial exit events within 5 seconds of geofence registration
-    const timeSinceStart = Date.now() - geofenceStartTime;
-    if (
-      eventType === Location.GeofencingEventType.Exit &&
-      timeSinceStart < 5000
-    ) {
-      console.log("Ignoring initial exit event");
-      return;
-    }
-
     if (eventType === Location.GeofencingEventType.Enter) {
       const campusId = region.identifier || "campus";
-      const campusName = region.identifier || "campus";
+      const campusName = campusNameMap[campusId] || `Campus ${campusId}`;
+      const eventKey = `enter-${campusId}`;
+      const now = Date.now();
+      const lastTime = lastGeofenceTime[eventKey] || 0;
+
+      // Only trigger if 30 seconds have passed since last notification
+      if (now - lastTime < GEOFENCE_DEBOUNCE_MS) {
+        console.log(`Skipping notification (debounced): ${campusName}`);
+        return;
+      }
+
+      lastGeofenceTime[eventKey] = now;
       console.log(`Je bent aangekomen bij: ${campusName}`);
 
       try {
@@ -88,21 +98,79 @@ TaskManager.defineTask(
 
     if (eventType === Location.GeofencingEventType.Exit) {
       const campusId = region.identifier || "campus";
-      const campusName = region.identifier || "campus";
-      console.log(`Je hebt ${campusName} verlaten`);
+      const eventKey = `exit-${campusId}`;
+      const now = Date.now();
+      const lastTime = lastGeofenceTime[eventKey] || 0;
 
-      try {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: `${campusName} verlaten`,
-            body: "Je vertrektijd wordt geregistreerd",
-            data: { campusId, campusName, action: "exit" },
-          },
-          trigger: null,
-        });
-      } catch (e) {
-        console.warn("Failed to schedule exit notification", e);
+      // Only trigger if 30 seconds have passed since last notification
+      if (now - lastTime < GEOFENCE_DEBOUNCE_MS) {
+        console.log(`Skipping exit notification (debounced)`);
+        return;
       }
+
+      lastGeofenceTime[eventKey] = now;
+      const campusName = campusNameMap[campusId] || `Campus ${campusId}`;
+      console.log(`Je hebt ${campusName} verlaten - processing...`);
+
+      // Wait 5 seconds, then update departure time and show exit notification
+      setTimeout(async () => {
+        try {
+          // Get userId from AsyncStorage to check if user is actually checked in
+          const userId = await AsyncStorage.getItem("@userId");
+
+          if (userId && campusId) {
+            // Get attendance data from database
+            const attendances = await getAttendanceSessions();
+
+            // Check if there's an active attendance for this campus today
+            const today = new Date().toISOString().split("T")[0];
+
+            // Filter attendances for this campus today, then get the most recent one
+            const campusAttendancesToday = attendances
+              .filter(
+                (a: any) =>
+                  a.profile_id === userId &&
+                  a.campus_id === Number(campusId) &&
+                  a.date === today
+              )
+              .sort((a: any, b: any) => {
+                // Sort by arrival_time descending (most recent first)
+                return (b.arrival_time || "").localeCompare(
+                  a.arrival_time || ""
+                );
+              });
+
+            // Get the most recent attendance
+            const activeAttendance = campusAttendancesToday[0];
+
+            // Only update if user is actually checked in (no departure_time yet)
+            if (activeAttendance && !activeAttendance.departure_time) {
+              // Update departure time in database
+              await updateDepartureTime(userId, campusId);
+              console.log(
+                `Departure time updated for ${campusName}, userId: ${userId}`
+              );
+
+              // Show notification
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: `${campusName} verlaten`,
+                  body: "Je vertrektijd is geregistreerd",
+                  data: { campusId, campusName, action: "exit" },
+                },
+                trigger: null,
+              });
+              console.log(`Exit notification shown for ${campusName}`);
+            } else {
+              console.log(
+                `No active attendance for ${campusName}, skipping notification and update`
+              );
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to handle exit notification", e);
+        }
+      }, 5000);
     }
   }
 );
@@ -158,7 +226,13 @@ export default function Campuses() {
     let respSub: any = null;
     const setupNotifications = async () => {
       try {
-        await Notifications.requestPermissionsAsync();
+        const { status } = await Notifications.requestPermissionsAsync();
+        console.log("Notification permission status:", status);
+
+        if (status !== "granted") {
+          console.warn("Notification permissions not granted");
+        }
+
         // Define actions for attendance prompt
         await Notifications.setNotificationCategoryAsync("ATTENDANCE", [
           {
@@ -172,6 +246,8 @@ export default function Campuses() {
             options: { opensAppToForeground: true },
           },
         ]);
+
+        console.log("Notification category set");
 
         respSub = Notifications.addNotificationResponseReceivedListener(
           async (response) => {
@@ -375,6 +451,12 @@ export default function Campuses() {
 
       console.log("Location permissions granted");
 
+      // Populate campus name mapping for use in notifications
+      campusData.forEach((campus) => {
+        const id = campus.id != null ? String(campus.id) : campus.name;
+        campusNameMap[id] = campus.name;
+      });
+
       const regions = campusData.map((campus) => ({
         latitude: Number(campus.latitude),
         longitude: Number(campus.longitude),
@@ -385,7 +467,6 @@ export default function Campuses() {
       }));
 
       if (regions.length > 0) {
-        geofenceStartTime = Date.now(); // Record when geofences are registered
         await Location.startGeofencingAsync(GEOFENCE_TASK_NAME, regions);
         console.log(`Succesvol ${regions.length} geofences geregistreerd.`);
       }
@@ -406,6 +487,9 @@ export default function Campuses() {
           console.warn("User not logged in");
           return;
         }
+
+        // Save userId to AsyncStorage for use in background tasks
+        await AsyncStorage.setItem("@userId", userId);
 
         await postAttendanceSession(userId, campusId);
       } catch (e) {
