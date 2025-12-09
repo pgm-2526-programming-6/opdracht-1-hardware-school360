@@ -1,5 +1,6 @@
 import useAuth from "@/src/components/functional/auth/useAuth";
 import { getProfile } from "@/src/core/modules/home/api.home";
+import { useCampusStatus } from "@/src/hooks/attendance/useCampusStatus";
 import { useMonthlyAttendance } from "@/src/hooks/attendance/useMonthlyAttendance";
 import { useTotalAttendance } from "@/src/hooks/attendance/useTotalAttendance";
 import { useWeeklyAttendance } from "@/src/hooks/attendance/useWeeklyAttendance";
@@ -20,6 +21,9 @@ const HomeView = () => {
     auth?.user?.id
   );
 
+  const { data: isAtCampus, isLoading: campusLoading } = useCampusStatus(
+    auth?.user?.id
+  );
   useEffect(() => {
     if (auth?.user?.id) {
       const fetchProfile = async () => {
@@ -33,8 +37,18 @@ const HomeView = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.statusBadge}>
-        <View style={styles.statusDot} />
-        <Text style={styles.statusText}>At Campus</Text>
+        <View
+          style={[styles.statusDot, !isAtCampus && styles.statusDotInactive]}
+        />
+        <Text
+          style={[styles.statusText, !isAtCampus && styles.statusTextInactive]}
+        >
+          {campusLoading
+            ? "Checking..."
+            : isAtCampus
+            ? "At Campus"
+            : "Not at Campus"}
+        </Text>
       </View>
 
       <View style={styles.header}>
@@ -143,9 +157,15 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     backgroundColor: ORANGE,
   },
+  statusDotInactive: {
+    backgroundColor: TEXT_GRAY,
+  },
   statusText: {
     color: ORANGE,
     fontWeight: "600",
+  },
+  statusTextInactive: {
+    color: TEXT_GRAY,
   },
 
   header: {
