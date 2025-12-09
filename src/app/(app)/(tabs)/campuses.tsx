@@ -4,7 +4,7 @@ import {
   getCampuses,
   postAttendanceSession,
   updateDepartureTime,
-} from "@/src/core/modules/clients/api.clients";
+} from "@/src/core/modules/campus/api.campus";
 import { Entypo } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
@@ -45,6 +45,9 @@ const { width } = Dimensions.get("window");
 let lastGeofenceTime: { [key: string]: number } = {};
 const GEOFENCE_DEBOUNCE_MS = 30000; // 30 seconds
 
+// Map campus IDs to names for notifications
+let campusNameMap: { [key: string]: string } = {};
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -64,7 +67,7 @@ TaskManager.defineTask(
 
     if (eventType === Location.GeofencingEventType.Enter) {
       const campusId = region.identifier || "campus";
-      const campusName = region.identifier || "campus";
+      const campusName = campusNameMap[campusId] || `Campus ${campusId}`;
       const eventKey = `enter-${campusId}`;
       const now = Date.now();
       const lastTime = lastGeofenceTime[eventKey] || 0;
@@ -106,7 +109,7 @@ TaskManager.defineTask(
       }
 
       lastGeofenceTime[eventKey] = now;
-      const campusName = region.identifier || "campus";
+      const campusName = campusNameMap[campusId] || `Campus ${campusId}`;
       console.log(`Je hebt ${campusName} verlaten - processing...`);
 
       // Wait 5 seconds, then update departure time and show exit notification
@@ -447,6 +450,12 @@ export default function Campuses() {
       }
 
       console.log("Location permissions granted");
+
+      // Populate campus name mapping for use in notifications
+      campusData.forEach((campus) => {
+        const id = campus.id != null ? String(campus.id) : campus.name;
+        campusNameMap[id] = campus.name;
+      });
 
       const regions = campusData.map((campus) => ({
         latitude: Number(campus.latitude),
