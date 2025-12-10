@@ -1,6 +1,6 @@
 import AttendanceBottomNav from "@/src/components/design/AttendanceBottomNav";
 import { getAttendanceSessions } from "@/src/core/modules/attendance/api.attendance";
-import { getCampuses } from "@/src/core/modules/clients/api.clients";
+import { getCampuses } from "@/src/core/modules/campus/api.campus";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -57,8 +57,9 @@ export default function TeacherPage() {
       } else {
         const filtered = attendanceSessions.filter(
           (session: any) => {
-            console.log('Session campus_id:', session.campus_id, 'campus?.id:', session.campus?.id, 'Match:', session.campus_id === campusId);
-            return session.campus_id === campusId;
+            const sessionCampusId = session.campus_id || session.campus?.id;
+            console.log('Session campus_id:', session.campus_id, 'campus?.id:', session.campus?.id, 'Match:', sessionCampusId === campusId);
+            return sessionCampusId === campusId;
           }
         );
         console.log('Filtered sessions:', filtered.length);
