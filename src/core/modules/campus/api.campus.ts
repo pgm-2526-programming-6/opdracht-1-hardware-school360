@@ -36,7 +36,6 @@ export const postAttendanceSession = async (
       campus_id: Number(campusId),
       date: today,
       arrival_time: timeOnly,
-      departure_time: timeOnly,
     },
   ]);
 
@@ -59,32 +58,13 @@ export const updateDepartureTime = async (
   const today = now.toISOString().split("T")[0];
   const timeOnly = now.toISOString().split("T")[1].split(".")[0];
 
-  // First check if user has a checked-in record for this campus today
-  const { data: existingRecord, error: checkError } = await API.from(
-    "AttendanceSessions"
-  )
-    .select("id, departure_time")
+  const { data, error } = await API.from("AttendanceSessions")
+    .update({ departure_time: timeOnly })
     .eq("profile_id", profileId)
     .eq("campus_id", Number(campusId))
     .eq("date", today)
-    .is("departure_time", null)
-    .maybeSingle();
-
-  if (checkError) {
-    console.error("Error checking existing record:", checkError);
-    return [];
-  }
-
-  // If no unchecked record found, user hasn't checked in
-  if (!existingRecord) {
-    console.log("No active check-in record found for this campus today");
-    return [];
-  }
-
-  // Update departure time
-  const { data, error } = await API.from("AttendanceSessions")
-    .update({ departure_time: timeOnly })
-    .eq("id", existingRecord.id);
+    .order("arrival_time", { ascending: false })
+    .limit(1);
 
   if (error) {
     console.error("Supabase update error:", error);
