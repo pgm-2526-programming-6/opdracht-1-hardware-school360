@@ -1,3 +1,7 @@
+import { AttendancePromptModal } from "@functional/attendance/AttendancePromptModal";
+import { AttendanceProvider } from "@functional/attendance/AttendanceProvider";
+import { NotificationListener } from "@functional/attendance/NotificationListener";
+import { LocationProvider } from "@functional/location/LocationProvider";
 import AuthProvider from "@functional/auth/AuthProvider";
 import useAuth from "@functional/auth/useAuth";
 import { ThemeProvider } from "@react-navigation/native";
@@ -19,7 +23,11 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AuthGate />
+        <LocationProvider>
+          <AttendanceProvider>
+            <AuthGate />
+          </AttendanceProvider>
+        </LocationProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
@@ -37,6 +45,8 @@ const AuthGate = () => {
           <Stack.Screen name="(app)" />
         )}
       </Stack>
+      {isLoggedIn && <NotificationListener />}
+      <AttendancePromptModal />
     </ThemeProvider>
   );
 };
