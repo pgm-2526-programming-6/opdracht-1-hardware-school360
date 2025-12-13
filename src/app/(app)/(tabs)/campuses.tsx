@@ -130,8 +130,6 @@ export default function Campuses() {
         return;
       }
 
-      console.log("Location permissions granted");
-
       // Populate campus name mapping for use in notifications
       campusData.forEach((campus) => {
         const id = campus.id != null ? String(campus.id) : campus.name;
@@ -149,7 +147,6 @@ export default function Campuses() {
 
       if (regions.length > 0) {
         await Location.startGeofencingAsync(GEOFENCE_TASK_NAME, regions);
-        console.log(`Succesvol ${regions.length} geofences geregistreerd.`);
       }
     } catch (error) {
       console.error("Failed to register geofences:", error);

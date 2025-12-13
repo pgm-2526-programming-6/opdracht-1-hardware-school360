@@ -138,7 +138,6 @@ const registerGeofences = async (campusData: any[]) => {
 
     if (regions.length > 0) {
       await Location.startGeofencingAsync(GEOFENCE_TASK_NAME, regions);
-      console.log(`Succesvol ${regions.length} geofences geregistreerd.`);
     }
   } catch (error) {
     console.error("Failed to register geofences:", error);
@@ -150,7 +149,7 @@ TaskManager.defineTask(
   GEOFENCE_TASK_NAME,
   async ({ data: { eventType, region }, error }) => {
     if (error) {
-      console.log(error);
+      console.error(error);
       return;
     }
 

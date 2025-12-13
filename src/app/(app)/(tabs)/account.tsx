@@ -29,7 +29,6 @@ export default function Account() {
       try {
         const res = await getProfileById();
         setResponse(res);
-        console.log("Current Auth:", res);
       } catch (error) {
         console.error("Error getting current auth:", error);
       }
