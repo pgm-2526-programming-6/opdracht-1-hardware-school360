@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from "react";
-import * as Location from "expo-location";
-import * as TaskManager from "expo-task-manager";
-import * as Notifications from "expo-notifications";
-import { LocationContext, LocationContextType } from "./LocationContext";
 import {
-  getCampuses,
-  getAttendanceSessions,
-  updateDepartureTime,
+    getAttendanceSessions,
+    getCampuses,
+    updateDepartureTime,
 } from "@/src/core/modules/campus/api.campus";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+import * as Notifications from "expo-notifications";
+import * as TaskManager from "expo-task-manager";
+import React, { useEffect, useState } from "react";
+import { LocationContext, LocationContextType } from "./LocationContext";
 
 const GEOFENCE_TASK_NAME = "CALCULATE_RADIUS";
 let lastGeofenceTime: { [key: string]: number } = {};

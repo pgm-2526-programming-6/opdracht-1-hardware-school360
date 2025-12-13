@@ -1,8 +1,8 @@
-import React, { useEffect } from "react";
-import * as Notifications from "expo-notifications";
-import { useAttendancePrompt } from "./AttendanceContext";
-import useAuth from "../auth/useAuth";
 import { updateDepartureTime } from "@/src/core/modules/campus/api.campus";
+import * as Notifications from "expo-notifications";
+import React, { useEffect } from "react";
+import useAuth from "../auth/useAuth";
+import { useAttendancePrompt } from "./AttendanceContext";
 
 export const NotificationListener: React.FC = () => {
   const { setActivePrompt } = useAttendancePrompt();

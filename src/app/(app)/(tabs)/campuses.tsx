@@ -1,18 +1,18 @@
 import { useAttendancePrompt } from "@/src/components/functional/attendance/AttendanceContext";
-import { useLocation } from "@/src/components/functional/location/LocationContext";
 import useAuth from "@/src/components/functional/auth/useAuth";
+import { useLocation } from "@/src/components/functional/location/LocationContext";
 import { getCampuses } from "@/src/core/modules/campus/api.campus";
 import { Entypo } from "@expo/vector-icons";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Dimensions,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "../../../style/colors";
