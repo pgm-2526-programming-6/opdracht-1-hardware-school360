@@ -8,7 +8,7 @@ import { SettingsProvider } from "@functional/settings/SettingsContext";
 import { ThemeProvider } from "@react-navigation/native";
 import { DefaultScreenOptions, Theme } from "@style/theme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 
@@ -25,11 +25,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <SettingsProvider>
-          <LocationProvider>
-            <AttendanceProvider>
-              <AuthGate />
-            </AttendanceProvider>
-          </LocationProvider>
+          <AuthGate />
         </SettingsProvider>
       </AuthProvider>
     </QueryClientProvider>
@@ -38,11 +34,23 @@ export default function RootLayout() {
 
 const AuthGate = () => {
   const { isLoggedIn } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+
+    if (!isLoggedIn) {
+      // Redirect to login when logged out
+      router.replace("/(auth)/login");
+    } else if (isLoggedIn) {
+      // Redirect to app when logged in
+      router.replace("/(app)/(tabs)/home");
+    }
+  }, [isLoggedIn]);
 
   return (
     <ThemeProvider value={Theme}>
-      {/* LocationProvider ONLY als gebruiker is ingelogd */}
       {isLoggedIn ? (
+        // ✅ LocationProvider ONLY when logged in
         <LocationProvider>
           <AttendanceProvider>
             <Stack
@@ -55,6 +63,7 @@ const AuthGate = () => {
           </AttendanceProvider>
         </LocationProvider>
       ) : (
+        // ✅ No LocationProvider when not logged in
         <Stack screenOptions={{ ...DefaultScreenOptions, headerShown: false }}>
           <Stack.Screen name="(auth)" />
         </Stack>

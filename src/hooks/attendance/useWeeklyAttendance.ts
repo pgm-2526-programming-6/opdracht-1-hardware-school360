@@ -47,15 +47,15 @@ export const useWeeklyAttendance = (userId?: string) => {
         const daysAttended = userWeeklySessions
           .map((session: any) => {
             const sessionDate = new Date(session.date);
-            sessionDate.setHours(0, 0, 0, 0);
-
-            const diffTime = sessionDate.getTime() - monday.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays >= 0 && diffDays < 5) {
-              return diffDays;
+            const dayOfWeek = sessionDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+            
+            // Convert to our week format: 0 = Monday, 1 = Tuesday, ..., 4 = Friday
+            // getDay(): 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+              return -1; // Skip weekends
             }
-            return -1;
+            
+            return dayOfWeek - 1; // Monday (1) -> 0, Tuesday (2) -> 1, etc.
           })
           .filter((day: number) => day !== -1);
 

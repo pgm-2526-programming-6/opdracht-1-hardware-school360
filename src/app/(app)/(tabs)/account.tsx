@@ -6,11 +6,11 @@ import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileCard from "../../../components/design/ProfileCard";
@@ -40,11 +40,14 @@ export default function Account() {
   const handleTestNotification = async () => {
     try {
       haptics.light();
-      
+
       const { status } = await Notifications.requestPermissionsAsync();
-      
+
       if (status !== "granted") {
-        Alert.alert("Permission needed", "Please enable notifications in settings");
+        Alert.alert(
+          "Permission needed",
+          "Please enable notifications in settings"
+        );
         return;
       }
 
@@ -68,7 +71,7 @@ export default function Account() {
         text: "Logout",
         onPress: async () => {
           await logout();
-          router.replace("/(auth)/login");
+          // AuthGate handles navigation automatically when isLoggedIn becomes false
         },
         style: "destructive",
       },

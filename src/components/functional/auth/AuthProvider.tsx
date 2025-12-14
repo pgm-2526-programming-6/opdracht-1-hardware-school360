@@ -1,6 +1,8 @@
 import { getCurrentAuth, login, logout } from "@core/modules/auth/api.auth";
 import { Auth, LoginBody } from "@core/modules/auth/types.auth";
 import { API } from "@core/network/supabase/api";
+import * as Location from "expo-location";
+import * as TaskManager from "expo-task-manager";
 import { AuthChangeEvent } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 import AuthContext from "./AuthContext";
@@ -36,6 +38,8 @@ const AuthProvider = ({ children }: Props) => {
 
         case "SIGNED_OUT":
           setAuth(null);
+          // ✅ Stop geofences when user logs out
+          stopGeofences();
           break;
       }
     });
@@ -50,6 +54,23 @@ const AuthProvider = ({ children }: Props) => {
   const handleLogout = async () => {
     await logout();
     setAuth(null);
+    // ✅ Stop geofences when user logs out
+    stopGeofences();
+  };
+
+  const stopGeofences = async () => {
+    try {
+      const GEOFENCE_TASK_NAME = "CALCULATE_RADIUS";
+      const isTaskRegistered = await TaskManager.isTaskRegisteredAsync(
+        GEOFENCE_TASK_NAME
+      );
+      if (isTaskRegistered) {
+        await Location.stopGeofencingAsync(GEOFENCE_TASK_NAME);
+        console.log("Geofences stopped");
+      }
+    } catch (error) {
+      console.warn("Failed to stop geofences:", error);
+    }
   };
 
   return (

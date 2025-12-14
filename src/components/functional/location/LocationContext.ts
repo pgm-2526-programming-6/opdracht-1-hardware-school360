@@ -14,7 +14,13 @@ export const LocationContext = createContext<LocationContextType | undefined>(
 export const useLocation = () => {
   const context = useContext(LocationContext);
   if (!context) {
-    throw new Error("useLocation must be used within LocationProvider");
+    // ✅ Return default values instead of throwing error
+    return {
+      isLocationEnabled: false,
+      currentLocation: null,
+      loading: true,
+      error: "LocationProvider not initialized yet",
+    };
   }
   return context;
 };

@@ -34,13 +34,16 @@ const PROVIDER_GOOGLE = MapsModule ? MapsModule.PROVIDER_GOOGLE : undefined;
 const { width } = Dimensions.get("window");
 export default function Campuses() {
   const { auth } = useAuth();
-  const { currentLocation, loading } = useLocation();
+  const { currentLocation, loading, error } = useLocation();
   const { setActivePrompt } = useAttendancePrompt();
   const [campuses, setCampuses] = useState<any[]>([]);
   const mapRef = useRef<any>(null);
   const lastCoordsRef = useRef<{ latitude: number; longitude: number } | null>(
     null
   );
+
+  // ✅ Check if LocationProvider is ready
+  const isLocationReady = !error || error !== "LocationProvider not initialized yet";
 
   // Haversine distance (meters) between two lat/lng points
   const haversineDistance = (
@@ -180,7 +183,7 @@ export default function Campuses() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.mapWrap}>
-        {MapView && currentLocation ? (
+        {MapView && currentLocation && isLocationReady ? (
           // @ts-ignore
           <MapView
             ref={mapRef}

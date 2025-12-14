@@ -263,6 +263,19 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
       if (watchRef && typeof watchRef.remove === "function") {
         watchRef.remove();
       }
+      // Stop geofences when provider unmounts (logout)
+      const stopGeofencesOnUnmount = async () => {
+        try {
+          const isTaskRegistered = await TaskManager.isTaskRegisteredAsync(GEOFENCE_TASK_NAME);
+          if (isTaskRegistered) {
+            await Location.stopGeofencingAsync(GEOFENCE_TASK_NAME);
+            console.log("LocationProvider: Geofences stopped on unmount");
+          }
+        } catch (error) {
+          console.warn("Failed to stop geofences on unmount:", error);
+        }
+      };
+      stopGeofencesOnUnmount();
     };
   }, []);
 
