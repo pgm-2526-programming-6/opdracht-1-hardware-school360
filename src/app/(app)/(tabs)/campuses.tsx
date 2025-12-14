@@ -1,18 +1,18 @@
 import { useAttendancePrompt } from "@/src/components/functional/attendance/AttendanceContext";
-import { useLocation } from "@/src/components/functional/location/LocationContext";
 import useAuth from "@/src/components/functional/auth/useAuth";
+import { useLocation } from "@/src/components/functional/location/LocationContext";
 import { getCampuses } from "@/src/core/modules/campus/api.campus";
 import { Entypo } from "@expo/vector-icons";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Dimensions,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "../../../style/colors";
@@ -130,8 +130,6 @@ export default function Campuses() {
         return;
       }
 
-      console.log("Location permissions granted");
-
       // Populate campus name mapping for use in notifications
       campusData.forEach((campus) => {
         const id = campus.id != null ? String(campus.id) : campus.name;
@@ -149,7 +147,6 @@ export default function Campuses() {
 
       if (regions.length > 0) {
         await Location.startGeofencingAsync(GEOFENCE_TASK_NAME, regions);
-        console.log(`Succesvol ${regions.length} geofences geregistreerd.`);
       }
     } catch (error) {
       console.error("Failed to register geofences:", error);

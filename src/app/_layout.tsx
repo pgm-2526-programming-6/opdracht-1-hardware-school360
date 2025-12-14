@@ -1,9 +1,10 @@
 import { AttendancePromptModal } from "@functional/attendance/AttendancePromptModal";
 import { AttendanceProvider } from "@functional/attendance/AttendanceProvider";
 import { NotificationListener } from "@functional/attendance/NotificationListener";
-import { LocationProvider } from "@functional/location/LocationProvider";
 import AuthProvider from "@functional/auth/AuthProvider";
 import useAuth from "@functional/auth/useAuth";
+import { LocationProvider } from "@functional/location/LocationProvider";
+import { SettingsProvider } from "@functional/settings/SettingsContext";
 import { ThemeProvider } from "@react-navigation/native";
 import { DefaultScreenOptions, Theme } from "@style/theme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -23,7 +24,13 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AuthGate />
+        <SettingsProvider>
+          <LocationProvider>
+            <AttendanceProvider>
+              <AuthGate />
+            </AttendanceProvider>
+          </LocationProvider>
+        </SettingsProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

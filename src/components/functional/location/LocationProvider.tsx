@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from "react";
-import * as Location from "expo-location";
-import * as TaskManager from "expo-task-manager";
-import * as Notifications from "expo-notifications";
-import { LocationContext, LocationContextType } from "./LocationContext";
 import {
-  getCampuses,
-  getAttendanceSessions,
-  updateDepartureTime,
+    getAttendanceSessions,
+    getCampuses,
+    updateDepartureTime,
 } from "@/src/core/modules/campus/api.campus";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+import * as Notifications from "expo-notifications";
+import * as TaskManager from "expo-task-manager";
+import React, { useEffect, useState } from "react";
+import { LocationContext, LocationContextType } from "./LocationContext";
 
 const GEOFENCE_TASK_NAME = "CALCULATE_RADIUS";
 const GEOFENCE_DEBOUNCE_MS = 30000;
@@ -291,9 +291,107 @@ const registerGeofences = async (campusData: any[]) => {
 
     if (regions.length > 0) {
       await Location.startGeofencingAsync(GEOFENCE_TASK_NAME, regions);
-      console.log(`Succesvol ${regions.length} geofences geregistreerd.`);
     }
   } catch (error) {
     console.error("Failed to register geofences:", error);
   }
 };
+
+// Define geofence task globally
+TaskManager.defineTask(
+  GEOFENCE_TASK_NAME,
+  async ({ data: { eventType, region }, error }) => {
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    if (eventType === Location.GeofencingEventType.Enter) {
+      const campusId = region.identifier || "campus";
+      const campusName = campusNameMap[campusId] || `Campus ${campusId}`;
+      const eventKey = `enter-${campusId}`;
+      const now = Date.now();
+      const lastTime = lastGeofenceTime[eventKey] || 0;
+
+      if (now - lastTime < GEOFENCE_DEBOUNCE_MS) {
+        console.log(`Skipping notification (debounced): ${campusName}`);
+        return;
+      }
+
+      lastGeofenceTime[eventKey] = now;
+      console.log(`Je bent aangekomen bij: ${campusName}`);
+
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `Aangekomen bij ${campusName}`,
+            body: "Ben je aanwezig? Antwoord Ja of Nee",
+            data: { campusId, campusName, action: "enter" },
+            categoryId: "ATTENDANCE",
+          },
+          trigger: null,
+        });
+      } catch (e) {
+        console.warn("Failed to schedule notification", e);
+      }
+    }
+
+    if (eventType === Location.GeofencingEventType.Exit) {
+      const campusId = region.identifier || "campus";
+      const eventKey = `exit-${campusId}`;
+      const now = Date.now();
+      const lastTime = lastGeofenceTime[eventKey] || 0;
+
+      if (now - lastTime < GEOFENCE_DEBOUNCE_MS) {
+        console.log(`Skipping exit notification (debounced)`);
+        return;
+      }
+
+      lastGeofenceTime[eventKey] = now;
+      const campusName = campusNameMap[campusId] || `Campus ${campusId}`;
+      console.log(`Je hebt ${campusName} verlaten - processing...`);
+
+      setTimeout(async () => {
+        try {
+          const userId = await AsyncStorage.getItem("@userId");
+
+          if (userId && campusId) {
+            const attendances = await getAttendanceSessions();
+            const today = new Date().toISOString().split("T")[0];
+
+            const campusAttendancesToday = attendances
+              .filter(
+                (a: any) =>
+                  a.profile_id === userId &&
+                  a.campus_id === Number(campusId) &&
+                  a.date === today
+              )
+              .sort((a: any, b: any) => {
+                return (b.arrival_time || "").localeCompare(
+                  a.arrival_time || ""
+                );
+              });
+
+            const activeAttendance = campusAttendancesToday[0];
+
+            if (activeAttendance && !activeAttendance.departure_time) {
+              await updateDepartureTime(userId, campusId);
+
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: `${campusName} verlaten`,
+                  body: "Je vertrektijd is geregistreerd",
+                  data: { campusId, campusName, action: "exit" },
+                },
+                trigger: null,
+              });
+              console.log(`Exit notification shown for ${campusName}`);
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to handle exit notification", e);
+        }
+      }, 5000);
+    }
+  }
+);

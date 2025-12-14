@@ -1,8 +1,8 @@
-import React, { useEffect } from "react";
-import * as Notifications from "expo-notifications";
-import { useAttendancePrompt } from "./AttendanceContext";
-import useAuth from "../auth/useAuth";
 import { updateDepartureTime } from "@/src/core/modules/campus/api.campus";
+import * as Notifications from "expo-notifications";
+import React, { useEffect } from "react";
+import useAuth from "../auth/useAuth";
+import { useAttendancePrompt } from "./AttendanceContext";
 
 export const NotificationListener: React.FC = () => {
   const { setActivePrompt } = useAttendancePrompt();
@@ -43,15 +43,12 @@ export const NotificationListener: React.FC = () => {
         const actionId = response.actionIdentifier;
         const data = response.notification.request.content.data || {};
 
-        console.log("Notification response received:", { actionId, data });
-
         // Handle exit event (automatic departure time update)
         if (data.action === "exit") {
           const userId = auth?.user?.id;
           if (userId && data.campusId) {
             try {
               await updateDepartureTime(userId, data.campusId);
-              console.log("Departure time updated from notification");
             } catch (e) {
               console.error("Failed to update departure time", e);
             }
@@ -61,11 +58,9 @@ export const NotificationListener: React.FC = () => {
 
         // Handle enter event actions
         if (actionId === "YES") {
-          console.log("Gebruiker kiest JA voor aanwezig:", data);
           // Show the in-app prompt
           setActivePrompt({ id: data.campusId, name: data.campusName });
         } else if (actionId === "NO") {
-          console.log("Gebruiker kiest NEE voor aanwezig:", data);
         } else {
           // User tapped notification body -> show in-app prompt
           setActivePrompt({ id: data.campusId, name: data.campusName });

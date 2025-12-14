@@ -50,20 +50,16 @@ export default function TeacherPage() {
     const handleCampusFilter = (campusId: string | null) => {
       setSelectedCampus(campusId);
       setDropdownOpen(false);
-      console.log('Filtering by campus:', campusId);
-      console.log('Total sessions:', attendanceSessions.length);
       if (campusId === null) {
         setFilteredSessions(attendanceSessions);
       } else {
         const filtered = attendanceSessions.filter(
           (session: any) => {
             const sessionCampusId = session.campus_id || session.campus?.id;
-            console.log('Session campus_id:', session.campus_id, 'campus?.id:', session.campus?.id, 'Match:', sessionCampusId === campusId);
             return sessionCampusId === campusId;
           }
         );
-        console.log('Filtered sessions:', filtered.length);
-        setFilteredSessions(filtered);
+       setFilteredSessions(filtered);
       }
     };
   

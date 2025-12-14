@@ -1,6 +1,6 @@
-import { userSettings } from "@/src/core/modules/users/api.users";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { useSettings } from "@functional/settings/SettingsContext";
+import React from "react";
 import {
   GestureResponderEvent,
   StyleSheet,
@@ -16,7 +16,6 @@ type Props = {
   description?: string;
   icon?: any;
   variant?: "toggle" | "link";
-  initialValue?: boolean;
   onPress?: (e: GestureResponderEvent) => void;
 };
 
@@ -25,18 +24,14 @@ export default function SettingsCard({
   description,
   icon = "notifications-outline",
   variant = "toggle",
-  initialValue = true,
   onPress,
 }: Props) {
-  const [enabled, setEnabled] = useState(initialValue);
+  const { settings, updateSettings } = useSettings();
+  const settingKey = name.toLowerCase() as "sounds" | "vibrations";
+  const enabled = settings[settingKey] ?? true;
 
-  const handleToggle = () => {
-    const settingKey = name.toLowerCase() as "sounds" | "vibrations";
-    userSettings(settingKey, { [settingKey]: !enabled } as {
-      sounds: boolean;
-      vibrations: boolean;
-    });
-    setEnabled((v) => !v);
+  const handleToggle = async () => {
+    await updateSettings(settingKey, !enabled);
   };
 
   if (variant === "link") {

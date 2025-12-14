@@ -1,14 +1,16 @@
 import { getProfileById } from "@/src/core/modules/users/api.users";
 import useAuth from "@functional/auth/useAuth";
 import useUserRole from "@functional/auth/useUserRole";
+import { useHaptics } from "@functional/settings/useHaptics";
+import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileCard from "../../../components/design/ProfileCard";
@@ -19,6 +21,7 @@ export default function Account() {
   const router = useRouter();
   const { logout } = useAuth();
   const { isTeacher, loading } = useUserRole();
+  const haptics = useHaptics();
   const [response, setResponse] = useState<any>({});
 
   useEffect(() => {
@@ -26,7 +29,6 @@ export default function Account() {
       try {
         const res = await getProfileById();
         setResponse(res);
-        console.log("Current Auth:", res);
       } catch (error) {
         console.error("Error getting current auth:", error);
       }
@@ -34,6 +36,30 @@ export default function Account() {
 
     fetchProfile();
   }, []);
+
+  const handleTestNotification = async () => {
+    try {
+      haptics.light();
+      
+      const { status } = await Notifications.requestPermissionsAsync();
+      
+      if (status !== "granted") {
+        Alert.alert("Permission needed", "Please enable notifications in settings");
+        return;
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Test Notification",
+          body: "Testing sound settings",
+        },
+        trigger: null,
+      });
+    } catch (error) {
+      console.error("Error scheduling notification:", error);
+      Alert.alert("Error", "Failed to send notification");
+    }
+  };
 
   const handleLogout = async () => {
     Alert.alert("Logout", "Are you sure you want to log out?", [
@@ -77,9 +103,17 @@ export default function Account() {
         <SettingsCard
           name="Vibrations"
           description="Haptic Feedback"
-          icon="vibrate"
+          icon="phone-portrait-outline"
           variant="toggle"
         />
+
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={handleTestNotification}
+        >
+          <Text style={styles.testButtonText}>🔔 Test Sound</Text>
+        </TouchableOpacity>
+
         <SettingsCard name="Privacy & Security" variant="link" />
         <SettingsCard name="Help & Support" variant="link" />
 
@@ -138,6 +172,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  testButton: {
+    marginTop: 8,
+    alignItems: "center",
+    backgroundColor: "#3b82f6",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  testButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
   logoutButton: {
     marginTop: 20,
     paddingVertical: 12,
