@@ -23,11 +23,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <LocationProvider>
-          <AttendanceProvider>
-            <AuthGate />
-          </AttendanceProvider>
-        </LocationProvider>
+        <AuthGate />
       </AuthProvider>
     </QueryClientProvider>
   );
@@ -38,15 +34,24 @@ const AuthGate = () => {
 
   return (
     <ThemeProvider value={Theme}>
-      <Stack screenOptions={{ ...DefaultScreenOptions, headerShown: false }}>
-        {!isLoggedIn ? (
+      {/* LocationProvider ONLY als gebruiker is ingelogd */}
+      {isLoggedIn ? (
+        <LocationProvider>
+          <AttendanceProvider>
+            <Stack
+              screenOptions={{ ...DefaultScreenOptions, headerShown: false }}
+            >
+              <Stack.Screen name="(app)" />
+            </Stack>
+            <NotificationListener />
+            <AttendancePromptModal />
+          </AttendanceProvider>
+        </LocationProvider>
+      ) : (
+        <Stack screenOptions={{ ...DefaultScreenOptions, headerShown: false }}>
           <Stack.Screen name="(auth)" />
-        ) : (
-          <Stack.Screen name="(app)" />
-        )}
-      </Stack>
-      {isLoggedIn && <NotificationListener />}
-      <AttendancePromptModal />
+        </Stack>
+      )}
     </ThemeProvider>
   );
 };
