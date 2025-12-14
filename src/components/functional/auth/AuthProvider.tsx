@@ -34,12 +34,7 @@ const AuthProvider = ({ children }: Props) => {
       try {
         const auth = await getCurrentAuth();
         setAuth(auth);
-
-        // ✅ CRITICAL: If user is NOT logged in at startup, stop any running geofences
         if (!auth?.user?.id) {
-          console.log(
-            "AuthProvider: User not logged in at startup, clearing geofences"
-          );
           await stopGeofences();
         }
       } catch {
@@ -85,7 +80,6 @@ const AuthProvider = ({ children }: Props) => {
 
   const stopGeofences = async () => {
     try {
-      console.log("AuthProvider: Stopping geofences...");
 
       // ✅ Reset task flag FIRST
       resetTaskDefined();
@@ -97,18 +91,14 @@ const AuthProvider = ({ children }: Props) => {
 
       if (isTaskRegistered) {
         await Location.stopGeofencingAsync(GEOFENCE_TASK_NAME);
-        console.log("AuthProvider: Geofences stopped");
 
         // ✅ 2. Unregister the task COMPLETELY
         await TaskManager.unregisterTaskAsync(GEOFENCE_TASK_NAME);
-        console.log("AuthProvider: Geofence task unregistered");
       }
 
       // ✅ 3. Clear ALL user data from AsyncStorage
       await AsyncStorage.removeItem("@userId");
       await AsyncStorage.removeItem("@geofenceDebounce");
-
-      console.log("AuthProvider: All geofence data cleared");
     } catch (error) {
       console.error("Failed to stop geofences:", error);
     }
