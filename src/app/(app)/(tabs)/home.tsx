@@ -1,25 +1,39 @@
 import useAuth from "@/src/components/functional/auth/useAuth";
 import { getProfile } from "@/src/core/modules/home/api.home";
-import { useMonthlyAttendance } from "@/src/hooks/attendance/useMonthlyAttendance";
-import { useTotalAttendance } from "@/src/hooks/attendance/useTotalAttendance";
-import { useWeeklyAttendance } from "@/src/hooks/attendance/useWeeklyAttendance";
+import { useCampusStatus } from "@/src/hooks/attendance/useCampusStatus";
+import { useAttendanceSummary } from "@/src/hooks/attendance/useAttendanceSummary";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const HomeView = () => {
   const [profile, setProfile] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
   const { auth } = useAuth();
-  const { weeklyCount, attendedDays, loading } = useWeeklyAttendance(
-    auth?.user?.id
-  );
-  const { monthlyCount, loading: monthlyLoading } = useMonthlyAttendance(
-    auth?.user?.id
-  );
-  const { totalCount, loading: totalLoading } = useTotalAttendance(
+  const { data: summary, isLoading: summaryLoading } = useAttendanceSummary(
     auth?.user?.id
   );
 
+  const { data: isAtCampus, isLoading: campusLoading } = useCampusStatus(
+    auth?.user?.id
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({
+      queryKey: ["campusStatus", auth?.user?.id],
+    });
+    setRefreshing(false);
+  };
   useEffect(() => {
     if (auth?.user?.id) {
       const fetchProfile = async () => {
@@ -32,83 +46,104 @@ const HomeView = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.statusBadge}>
-        <View style={styles.statusDot} />
-        <Text style={styles.statusText}>At Campus</Text>
-      </View>
-
-      <View style={styles.header}>
-        <Text style={styles.title}>
-          Welcome, {profile ? `${profile.first_name}` : "Loading..."}
-        </Text>
-        <Text style={styles.subtitle}>
-          Your attendance is automatically tracked
-        </Text>
-      </View>
-
-      <View style={styles.weekdays}>
-        {["Ma", "Di", "Woe", "Do", "Vr"].map((day, i) => (
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View style={styles.statusBadge}>
           <View
-            key={i}
+            style={[styles.statusDot, !isAtCampus && styles.statusDotInactive]}
+          />
+          <Text
             style={[
-              styles.dayPill,
-              attendedDays.includes(i) ? styles.dayActive : null,
+              styles.statusText,
+              !isAtCampus && styles.statusTextInactive,
             ]}
           >
-            <Text
+            {campusLoading
+              ? "Checking..."
+              : isAtCampus
+              ? "At Campus"
+              : "Not at Campus"}
+          </Text>
+        </View>
+
+        <View style={styles.header}>
+          <Text style={styles.title}>
+            Welcome, {profile ? `${profile.first_name}` : "Loading..."}
+          </Text>
+          <Text style={styles.subtitle}>
+            Your attendance is automatically tracked
+          </Text>
+        </View>
+
+        <View style={styles.weekdays}>
+          {["Ma", "Di", "Woe", "Do", "Vr"].map((day, i) => (
+            <View
+              key={i}
               style={[
-                styles.dayText,
-                attendedDays.includes(i) ? styles.dayTextActive : null,
+                styles.dayPill,
+                summary?.attendedDays?.includes(i) ? styles.dayActive : null,
               ]}
             >
-              {day}
+              <Text
+                style={[
+                  styles.dayText,
+                  summary?.attendedDays?.includes(i) ? styles.dayTextActive : null,
+                ]}
+              >
+                {day}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.card}>
+          <View>
+            <Text style={styles.cardTitle}>This Week</Text>
+            <Text style={styles.cardNumber}>
+              {summaryLoading ? "..." : summary?.weeklyCount ?? 0}
             </Text>
           </View>
-        ))}
-      </View>
+          <View style={styles.cardContainer}>
+            <Image
+              source={require("../../../assets/icons/callender-icon.png")}
+              style={styles.cardIcon}
+            />
+          </View>
+        </View>
 
-      <View style={styles.card}>
-        <View>
-          <Text style={styles.cardTitle}>This Week</Text>
-          <Text style={styles.cardNumber}>{loading ? "..." : weeklyCount}</Text>
+        <View style={styles.card}>
+          <View>
+            <Text style={styles.cardTitle}>This Month</Text>
+            <Text style={styles.cardNumber}>
+              {summaryLoading ? "..." : summary?.monthlyCount ?? 0}
+            </Text>
+          </View>
+          <View style={styles.cardContainer}>
+            <Image
+              source={require("../../../assets/icons/graph.png")}
+              style={styles.cardIcon}
+            />
+          </View>
         </View>
-        <View style={styles.cardContainer}>
-          <Image
-            source={require("../../../assets/icons/callender-icon.png")}
-            style={styles.cardIcon}
-          />
-        </View>
-      </View>
 
-      <View style={styles.card}>
-        <View>
-          <Text style={styles.cardTitle}>This Month</Text>
-          <Text style={styles.cardNumber}>
-            {monthlyLoading ? "..." : monthlyCount}
-          </Text>
+        <View style={styles.card}>
+          <View>
+            <Text style={styles.cardTitle}>Total</Text>
+            <Text style={styles.cardNumber}>
+              {summaryLoading ? "..." : summary?.totalCount ?? 0}
+            </Text>
+          </View>
+          <View style={styles.cardContainer}>
+            <Image
+              source={require("../../../assets/icons/total.png")}
+              style={styles.cardIcon}
+            />
+          </View>
         </View>
-        <View style={styles.cardContainer}>
-          <Image
-            source={require("../../../assets/icons/graph.png")}
-            style={styles.cardIcon}
-          />
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <View>
-          <Text style={styles.cardTitle}>Total</Text>
-          <Text style={styles.cardNumber}>
-            {totalLoading ? "..." : totalCount}
-          </Text>
-        </View>
-        <View style={styles.cardContainer}>
-          <Image
-            source={require("../../../assets/icons/total.png")}
-            style={styles.cardIcon}
-          />
-        </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -123,7 +158,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8F8F8",
-    paddingHorizontal: 100,
+    paddingHorizontal: 55,
   },
 
   statusBadge: {
@@ -143,9 +178,15 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     backgroundColor: ORANGE,
   },
+  statusDotInactive: {
+    backgroundColor: TEXT_GRAY,
+  },
   statusText: {
     color: ORANGE,
     fontWeight: "600",
+  },
+  statusTextInactive: {
+    color: TEXT_GRAY,
   },
 
   header: {

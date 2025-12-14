@@ -1,0 +1,82 @@
+import { updateDepartureTime } from "@/src/core/modules/campus/api.campus";
+import * as Notifications from "expo-notifications";
+import { useQueryClient } from "@tanstack/react-query";
+import React, { useEffect } from "react";
+import useAuth from "../auth/useAuth";
+import { useAttendancePrompt } from "./AttendanceContext";
+
+export const NotificationListener: React.FC = () => {
+  const { setActivePrompt } = useAttendancePrompt();
+  const { auth } = useAuth();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    // Setup notification handler
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+
+    // Setup notification category
+    const setupCategory = async () => {
+      await Notifications.setNotificationCategoryAsync("ATTENDANCE", [
+        {
+          identifier: "YES",
+          buttonTitle: "Ja",
+          options: { opensAppToForeground: true },
+        },
+        {
+          identifier: "NO",
+          buttonTitle: "Nee",
+          options: { opensAppToForeground: true },
+        },
+      ]);
+    };
+
+    setupCategory();
+
+    // Listen to notification responses
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      async (response) => {
+        const actionId = response.actionIdentifier;
+        const data = response.notification.request.content.data || {};
+
+        // Handle exit event (automatic departure time update)
+        if (data.action === "exit") {
+          const userId = auth?.user?.id;
+          if (userId && data.campusId) {
+            try {
+              await updateDepartureTime(userId, data.campusId);
+              // ✅ Invalidate summary + campus status after checkout
+              queryClient.invalidateQueries({ queryKey: ["attendanceSummary", userId] });
+              queryClient.invalidateQueries({ queryKey: ["campusStatus", userId] });
+            } catch (e) {
+              console.error("Failed to update departure time", e);
+            }
+          }
+          return;
+        }
+
+        // Handle enter event actions
+        if (actionId === "YES") {
+          // Show the in-app prompt
+          setActivePrompt({ id: data.campusId, name: data.campusName });
+        } else if (actionId === "NO") {
+        } else {
+          // User tapped notification body -> show in-app prompt
+          setActivePrompt({ id: data.campusId, name: data.campusName });
+        }
+      }
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [auth, setActivePrompt]);
+
+  return null;
+};

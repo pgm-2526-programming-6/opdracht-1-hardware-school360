@@ -1,7 +1,10 @@
+import { getProfileById } from "@/src/core/modules/users/api.users";
 import useAuth from "@functional/auth/useAuth";
 import useUserRole from "@functional/auth/useUserRole";
+import { useHaptics } from "@functional/settings/useHaptics";
+import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -18,6 +21,48 @@ export default function Account() {
   const router = useRouter();
   const { logout } = useAuth();
   const { isTeacher, loading } = useUserRole();
+  const haptics = useHaptics();
+  const [response, setResponse] = useState<any>({});
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await getProfileById();
+        setResponse(res);
+      } catch (error) {
+        console.error("Error getting current auth:", error);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const handleTestNotification = async () => {
+    try {
+      haptics.light();
+
+      const { status } = await Notifications.requestPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission needed",
+          "Please enable notifications in settings"
+        );
+        return;
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Test Notification",
+          body: "Testing sound settings",
+        },
+        trigger: null,
+      });
+    } catch (error) {
+      console.error("Error scheduling notification:", error);
+      Alert.alert("Error", "Failed to send notification");
+    }
+  };
 
   const handleLogout = async () => {
     Alert.alert("Logout", "Are you sure you want to log out?", [
@@ -26,7 +71,7 @@ export default function Account() {
         text: "Logout",
         onPress: async () => {
           await logout();
-          router.replace("/(auth)/login");
+          // AuthGate handles navigation automatically when isLoggedIn becomes false
         },
         style: "destructive",
       },
@@ -39,10 +84,16 @@ export default function Account() {
         <Text style={styles.header}>Account</Text>
 
         <ProfileCard
-          name="school360"
-          id={360245}
-          email="school.360@student.arteveldehs.be"
+          name={response.first_name + " " + response.last_name}
+          id={response.id}
+          email={response.email}
         />
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push("/(app)/attendance")}
+        >
+          <Text style={styles.buttonText}>View Attendance List</Text>
+        </TouchableOpacity>
 
         <Text style={styles.sectionHeader}>Settings</Text>
 
@@ -55,17 +106,25 @@ export default function Account() {
         <SettingsCard
           name="Vibrations"
           description="Haptic Feedback"
-          icon="vibrate"
+          icon="phone-portrait-outline"
           variant="toggle"
         />
+
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={handleTestNotification}
+        >
+          <Text style={styles.testButtonText}>🔔 Test Sound</Text>
+        </TouchableOpacity>
+
         <SettingsCard name="Privacy & Security" variant="link" />
         <SettingsCard name="Help & Support" variant="link" />
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.teacherButton, 
-            (!isTeacher || loading) && styles.teacherButtonDisabled
-          ]} 
+            styles.teacherButton,
+            (!isTeacher || loading) && styles.teacherButtonDisabled,
+          ]}
           onPress={() => router.push("/(app)/teacher" as any)}
           disabled={!isTeacher || loading}
         >
@@ -73,9 +132,7 @@ export default function Account() {
             {loading ? "Loading..." : "Teacher Dashboard"}
           </Text>
           {!isTeacher && !loading && (
-            <Text style={styles.teacherButtonSubtext}>
-              (Teachers only)
-            </Text>
+            <Text style={styles.teacherButtonSubtext}>(Teachers only)</Text>
           )}
         </TouchableOpacity>
 
@@ -108,6 +165,28 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
     color: "#111",
+  },
+  button: {
+    marginTop: 16,
+    alignItems: "center",
+    backgroundColor: "#f2994a",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  testButton: {
+    marginTop: 8,
+    alignItems: "center",
+    backgroundColor: "#3b82f6",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  testButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
   },
   logoutButton: {
     marginTop: 20,
