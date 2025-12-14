@@ -1,5 +1,6 @@
 import { updateDepartureTime } from "@/src/core/modules/campus/api.campus";
 import * as Notifications from "expo-notifications";
+import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect } from "react";
 import useAuth from "../auth/useAuth";
 import { useAttendancePrompt } from "./AttendanceContext";
@@ -7,6 +8,7 @@ import { useAttendancePrompt } from "./AttendanceContext";
 export const NotificationListener: React.FC = () => {
   const { setActivePrompt } = useAttendancePrompt();
   const { auth } = useAuth();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Setup notification handler
@@ -49,6 +51,9 @@ export const NotificationListener: React.FC = () => {
           if (userId && data.campusId) {
             try {
               await updateDepartureTime(userId, data.campusId);
+              // ✅ Invalidate summary + campus status after checkout
+              queryClient.invalidateQueries({ queryKey: ["attendanceSummary", userId] });
+              queryClient.invalidateQueries({ queryKey: ["campusStatus", userId] });
             } catch (e) {
               console.error("Failed to update departure time", e);
             }

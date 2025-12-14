@@ -3,12 +3,14 @@ import { postAttendanceSession } from "@/src/core/modules/campus/api.campus";
 import { COLORS } from "@/src/style/colors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useAttendancePrompt } from "./AttendanceContext";
 
 export const AttendancePromptModal: React.FC = () => {
   const { auth } = useAuth();
   const { activePrompt, setActivePrompt } = useAttendancePrompt();
+  const queryClient = useQueryClient();
 
   const handlePromptAnswer = async (answer: "YES" | "NO") => {
     if (!activePrompt) return;
@@ -27,6 +29,11 @@ export const AttendancePromptModal: React.FC = () => {
         await AsyncStorage.setItem("@userId", userId);
 
         await postAttendanceSession(userId, campusId);
+        // ✅ Invalidate home summary + campus status
+        queryClient.invalidateQueries({
+          queryKey: ["attendanceSummary", userId],
+        });
+        queryClient.invalidateQueries({ queryKey: ["campusStatus", userId] });
       } catch (e) {
         console.error("Failed to register attendance", e);
       }

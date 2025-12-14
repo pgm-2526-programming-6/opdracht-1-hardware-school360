@@ -1,9 +1,7 @@
 import useAuth from "@/src/components/functional/auth/useAuth";
 import { getProfile } from "@/src/core/modules/home/api.home";
 import { useCampusStatus } from "@/src/hooks/attendance/useCampusStatus";
-import { useMonthlyAttendance } from "@/src/hooks/attendance/useMonthlyAttendance";
-import { useTotalAttendance } from "@/src/hooks/attendance/useTotalAttendance";
-import { useWeeklyAttendance } from "@/src/hooks/attendance/useWeeklyAttendance";
+import { useAttendanceSummary } from "@/src/hooks/attendance/useAttendanceSummary";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
@@ -21,13 +19,7 @@ const HomeView = () => {
   const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
   const { auth } = useAuth();
-  const { weeklyCount, attendedDays, loading } = useWeeklyAttendance(
-    auth?.user?.id
-  );
-  const { monthlyCount, loading: monthlyLoading } = useMonthlyAttendance(
-    auth?.user?.id
-  );
-  const { totalCount, loading: totalLoading } = useTotalAttendance(
+  const { data: summary, isLoading: summaryLoading } = useAttendanceSummary(
     auth?.user?.id
   );
 
@@ -92,13 +84,13 @@ const HomeView = () => {
               key={i}
               style={[
                 styles.dayPill,
-                attendedDays.includes(i) ? styles.dayActive : null,
+                summary?.attendedDays?.includes(i) ? styles.dayActive : null,
               ]}
             >
               <Text
                 style={[
                   styles.dayText,
-                  attendedDays.includes(i) ? styles.dayTextActive : null,
+                  summary?.attendedDays?.includes(i) ? styles.dayTextActive : null,
                 ]}
               >
                 {day}
@@ -111,7 +103,7 @@ const HomeView = () => {
           <View>
             <Text style={styles.cardTitle}>This Week</Text>
             <Text style={styles.cardNumber}>
-              {loading ? "..." : weeklyCount}
+              {summaryLoading ? "..." : summary?.weeklyCount ?? 0}
             </Text>
           </View>
           <View style={styles.cardContainer}>
@@ -126,7 +118,7 @@ const HomeView = () => {
           <View>
             <Text style={styles.cardTitle}>This Month</Text>
             <Text style={styles.cardNumber}>
-              {monthlyLoading ? "..." : monthlyCount}
+              {summaryLoading ? "..." : summary?.monthlyCount ?? 0}
             </Text>
           </View>
           <View style={styles.cardContainer}>
@@ -141,7 +133,7 @@ const HomeView = () => {
           <View>
             <Text style={styles.cardTitle}>Total</Text>
             <Text style={styles.cardNumber}>
-              {totalLoading ? "..." : totalCount}
+              {summaryLoading ? "..." : summary?.totalCount ?? 0}
             </Text>
           </View>
           <View style={styles.cardContainer}>
